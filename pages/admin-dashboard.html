@@ -220,6 +220,12 @@
   </style>
 </head>
 <body>
+<script>
+  // Immediately hide sidebar on mobile before any render
+  if (window.innerWidth <= 600) {
+    document.documentElement.style.setProperty('--sidebar-transform', 'translateX(-100%)');
+  }
+</script>
 
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -823,6 +829,28 @@
       sidebar.classList.toggle('open');
       overlay.classList.toggle('show');
     }
+
+    // Ensure sidebar is closed on mobile page load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.innerWidth <= 600) {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+      }
+    });
+
+    // Close sidebar when nav item clicked on mobile
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (window.innerWidth <= 600) {
+            document.querySelector('.sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('show');
+          }
+        });
+      });
+    });
 
     function showToast(msg, type='') {
       const t = document.getElementById('toast');
