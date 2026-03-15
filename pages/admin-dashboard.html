@@ -148,10 +148,15 @@
 
   <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="sidebar-brand">
+<div class="sidebar-brand">
+  <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.3rem">
+    <img src="../images/neu.png" alt="NEU" style="width:48px;height:48px;object-fit:contain;flex-shrink:0;" />
+    <div>
       <div class="title">CICS <span>DocHub</span></div>
-      <div class="subtitle">Admin Portal</div>
+      <div class="subtitle" style="margin-top:.15rem">Admin Portal</div>
     </div>
+  </div>
+</div>
 
     <div class="nav-section">Main</div>
     <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span><span>Dashboard</span></button>
@@ -195,10 +200,17 @@
       <div class="chart-card">
         <div class="chart-toolbar">
           <h3>Login Activity</h3>
-          <div style="display:flex;gap:.5rem">
-            <button class="period-btn active" onclick="loadLoginChart('7d',this)">7 Days</button>
-            <button class="period-btn" onclick="loadLoginChart('30d',this)">30 Days</button>
-            <button class="period-btn" onclick="loadLoginChart('90d',this)">90 Days</button>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+            <button class="period-btn active" onclick="loadLoginChart('daily',this)">Daily</button>
+            <button class="period-btn" onclick="loadLoginChart('weekly',this)">Weekly</button>
+            <button class="period-btn" onclick="loadLoginChart('monthly',this)">Monthly</button>
+            <button class="period-btn" onclick="loadLoginChart('custom',this)">Custom</button>
+            <div id="customChartRange" style="display:none;gap:.5rem;align-items:center;flex-wrap:wrap">
+              <input type="date" id="chartFrom" class="fi" style="padding:.3rem .6rem;font-size:.78rem;width:130px" />
+              <span style="font-size:.8rem;color:var(--muted)">to</span>
+              <input type="date" id="chartTo" class="fi" style="padding:.3rem .6rem;font-size:.78rem;width:130px" />
+              <button onclick="applyCustomChart()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:.3rem .8rem;font-size:.78rem;cursor:pointer">Apply</button>
+            </div>
           </div>
         </div>
         <canvas id="loginChart" height="100"></canvas>
@@ -365,7 +377,7 @@
       document.getElementById('sidebarAvatar').textContent = name.slice(0,2).toUpperCase();
       document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
       await Promise.all([loadStats(), loadDocuments(), loadStudents()]);
-      loadLoginChart('7d');
+      loadLoginChart('daily');
       loadDlChart();
     })();
 
@@ -394,18 +406,91 @@
     // ─── Login chart ─────────────────────────────────────────
     async function loadLoginChart(period, btn) {
       if (btn) { document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
-      const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-      const from = new Date(); from.setDate(from.getDate() - days);
-      const { data } = await _supabase.from('login_logs').select('logged_in_at').gte('logged_in_at', from.toISOString());
-      const counts = {}; const labels = [];
-      for (let i = days-1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate()-i); const k = d.toISOString().slice(0,10); counts[k]=0; labels.push(k); }
-      (data||[]).forEach(r => { const k = r.logged_in_at.slice(0,10); if(counts[k]!==undefined) counts[k]++; });
-      const values = labels.map(l=>counts[l]);
+
+      // Show/hide custom date range
+      const customRange = document.getElementById('customChartRange');
+      if (period === 'custom') { customRange.style.display = 'flex'; return; }
+      else { customRange.style.display = 'none'; }
+
+      await renderLoginChart(period, null, null);
+    }
+
+    async function applyCustomChart() {
+      const from = document.getElementById('chartFrom').value;
+      const to = document.getElementById('chartTo').value;
+      if (!from || !to) { showToast('Please select both dates.', 'error'); return; }
+      await renderLoginChart('custom', from, to);
+    }
+
+    async function renderLoginChart(period, customFrom, customTo) {
+      let from, to = new Date(), labels = [], counts = {};
+
+      if (period === 'daily') {
+        // Show last 7 days (day by day)
+        const days = 7;
+        from = new Date(); from.setDate(from.getDate() - days);
+        for (let i = days-1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate()-i); const k = d.toISOString().slice(0,10); counts[k]=0; labels.push(k); }
+      } else if (period === 'weekly') {
+        // Show last 8 weeks (week by week)
+        from = new Date(); from.setDate(from.getDate() - 56);
+        for (let i = 7; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - (i * 7));
+          const k = d.toISOString().slice(0,10); counts[k]=0; labels.push(k);
+        }
+      } else if (period === 'monthly') {
+        // Show last 6 months (month by month)
+        from = new Date(); from.setMonth(from.getMonth() - 6);
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(); d.setMonth(d.getMonth() - i); d.setDate(1);
+          const k = d.toISOString().slice(0,7); counts[k]=0; labels.push(k);
+        }
+      } else if (period === 'custom') {
+        from = new Date(customFrom); to = new Date(customTo); to.setHours(23,59,59,999);
+        const diff = Math.ceil((to - from) / (1000*60*60*24));
+        for (let i = 0; i <= diff; i++) {
+          const d = new Date(from); d.setDate(d.getDate() + i);
+          const k = d.toISOString().slice(0,10); counts[k]=0; labels.push(k);
+        }
+      }
+
+      const { data } = await _supabase.from('login_logs').select('logged_in_at')
+        .gte('logged_in_at', from.toISOString()).lte('logged_in_at', to.toISOString());
+
+      if (period === 'monthly') {
+        (data||[]).forEach(r => { const k = r.logged_in_at.slice(0,7); if(counts[k]!==undefined) counts[k]++; });
+      } else if (period === 'weekly') {
+        (data||[]).forEach(r => {
+          const rDate = new Date(r.logged_in_at);
+          let closest = labels[0];
+          for (const l of labels) {
+            if (new Date(l) <= rDate) closest = l;
+          }
+          if (counts[closest] !== undefined) counts[closest]++;
+        });
+      } else {
+        (data||[]).forEach(r => { const k = r.logged_in_at.slice(0,10); if(counts[k]!==undefined) counts[k]++; });
+      }
+
+      const values = labels.map(l => counts[l] || 0);
+
+      const formatLabel = (l) => {
+        if (period === 'monthly') {
+          const d = new Date(l + '-01');
+          return d.toLocaleDateString('en-PH', {month:'short', year:'numeric'});
+        } else if (period === 'weekly') {
+          const d = new Date(l);
+          return 'Wk ' + d.toLocaleDateString('en-PH', {month:'short', day:'numeric'});
+        } else {
+          const d = new Date(l);
+          return d.toLocaleDateString('en-PH', {month:'short', day:'numeric'});
+        }
+      };
+
       const ctx = document.getElementById('loginChart');
       if (loginChart) loginChart.destroy();
       loginChart = new Chart(ctx, {
         type:'line',
-        data:{ labels:labels.map(l=>{ const d=new Date(l); return d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}); }), datasets:[{label:'Logins',data:values,borderColor:'#D4A847',backgroundColor:'rgba(212,168,71,.1)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#D4A847'}]},
+        data:{ labels:labels.map(formatLabel), datasets:[{label:'Logins',data:values,borderColor:'#D4A847',backgroundColor:'rgba(212,168,71,.1)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#D4A847'}]},
         options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1}}, x:{grid:{display:false}} } }
       });
     }
