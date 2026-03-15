@@ -14,8 +14,7 @@
     body { font-family:'DM Sans',sans-serif; background:#F0F2F7; min-height:100vh; }
 
     /* Sidebar */
-    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; overflow-y:auto; }
-    .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
+.sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; overflow-y:hidden; }    .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
     .sidebar-brand .title { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:#fff; letter-spacing:.05em; }
     .sidebar-brand .title span { color:var(--gold); }
     .sidebar-brand .subtitle { font-size:.72rem; color:var(--muted); margin-top:.2rem; letter-spacing:.05em; text-transform:uppercase; }
@@ -135,6 +134,10 @@
     .empty-state { text-align:center; padding:4rem 1rem; color:var(--muted); }
     .empty-state .emoji { font-size:2.5rem; margin-bottom:.75rem; }
 
+    /* ── Inline admin (mobile only) ── */
+    .nav-admin-inline { display:none; padding:.75rem .5rem .5rem; border-top:1px solid rgba(255,255,255,.07); margin-top:.5rem; }
+    .nav-admin-info { display:flex; align-items:center; gap:.75rem; padding:.5rem 1.1rem; }
+
     /* ── Hamburger ── */
     .hamburger { display:none; background:none; border:none; cursor:pointer; padding:.4rem; color:var(--navy); align-items:center; justify-content:center; flex-shrink:0; }
 
@@ -182,6 +185,8 @@
       .sidebar.open .admin-info .admin-role,
       .sidebar.open .logout-link { display:block; }
 
+      .sidebar.open .nav-admin-inline { display:block; }
+
       .nav-item { justify-content:center; padding:.7rem; }
       .sidebar.open .nav-item { justify-content:flex-start; padding:.7rem 1.1rem; }
       .sidebar-footer .admin-info { justify-content:center; }
@@ -213,8 +218,7 @@
       .upload-card { padding:1.25rem; }
       .upload-btn { width:100%; }
       .drop-zone { padding:1.75rem 1rem; }
-      .sidebar-footer { padding:1rem 1.25rem 1.5rem !important; margin-bottom:0; position:relative; bottom:0; }
-      .logout-link { font-size:.82rem; margin-top:.75rem; padding:.5rem 0; display:block !important; }
+      .sidebar-footer { display:none !important; }
       .modal { padding:1.75rem 1.25rem; }
       .toast { right:.75rem; bottom:1rem; left:.75rem; max-width:none; font-size:.82rem; }
     }
@@ -244,6 +248,20 @@
     <div class="nav-section">Management</div>
     <button class="nav-item" onclick="showPage('students',this)"><span class="icon">🎓</span><span>Students</span></button>
     <button class="nav-item" onclick="showPage('reports',this)"><span class="icon">📈</span><span>Reports</span></button>
+
+    <!-- Admin info inline after nav items (visible on mobile) -->
+    <div class="nav-admin-inline">
+      <div class="nav-admin-info">
+        <div class="admin-avatar" id="sidebarAvatarMobile">A</div>
+        <div>
+          <div class="admin-name" id="sidebarNameMobile">Admin</div>
+          <div class="admin-role">Administrator</div>
+        </div>
+      </div>
+      <button class="nav-item" onclick="handleLogout()" style="color:var(--muted);margin-top:.25rem;">
+        <span class="icon">🚪</span><span>Sign out</span>
+      </button>
+    </div>
 
     <div class="sidebar-footer">
       <div class="admin-info">
@@ -461,6 +479,8 @@
       const name = profile.full_name || session.user.email;
       document.getElementById('sidebarName').textContent = name;
       document.getElementById('sidebarAvatar').textContent = name.slice(0,2).toUpperCase();
+      document.getElementById('sidebarNameMobile').textContent = name;
+      document.getElementById('sidebarAvatarMobile').textContent = name.slice(0,2).toUpperCase();
       document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
       await Promise.all([loadStats(), loadDocuments(), loadStudents()]);
       loadLoginChart('daily');
