@@ -97,8 +97,8 @@ async function requireAuth(adminOnly = false) {
 async function logLogin(userId) {
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Check first, then insert — ignore any errors silently
   try {
+    // Check if already logged today
     const { data: existing } = await _supabase
       .from('login_logs')
       .select('id')
@@ -106,18 +106,22 @@ async function logLogin(userId) {
       .eq('login_date', todayStr)
       .limit(1);
 
+    // Only insert if no record exists today
     if (!existing || existing.length === 0) {
-      await _supabase.from('login_logs').insert({
+      const { error } = await _supabase.from('login_logs').insert({
         user_id: userId,
         login_date: todayStr
       });
+      // Ignore conflict errors (duplicate key = already logged today)
+      if (error && error.code !== '23505') {
+        console.log('Login log error:', error.message);
+      }
     }
   } catch(e) {
-    // Silently ignore duplicate/conflict errors
     console.log('Login log skipped:', e.message);
   }
 
-  // Always update last_login timestamp
+  // Always update last_login timestamp regardless
   try {
     await _supabase.from('profiles')
       .update({ last_login: new Date().toISOString() })
