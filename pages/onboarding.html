@@ -68,12 +68,19 @@
   <script src="../js/supabase.js"></script>
   <script>
     let currentUserId = null;
+    let profileSaved = false;
+
     (async () => {
       const auth = await requireAuth(false);
       if (!auth) return;
       const { session, profile } = auth;
       currentUserId = session.user.id;
-      if (profile.program) { window.location.href = 'student-dashboard.html'; return; }
+
+      // Already completed onboarding — go to dashboard
+      if (profile.program) {
+        window.location.href = 'student-dashboard.html';
+        return;
+      }
 
       const nameFromMeta = session.user.user_metadata?.full_name || '';
       document.getElementById('fullName').value = nameFromMeta;
@@ -95,9 +102,18 @@
       if (!fullName) { alert('Please enter your full name.'); return; }
       document.getElementById('saveBtn').disabled = true;
       document.getElementById('saveBtn').textContent = 'Saving…';
+      profileSaved = true;
       await _supabase.from('profiles').update({ program, full_name: fullName }).eq('id', currentUserId);
       window.location.href = 'student-dashboard.html';
     }
+
+    // If user closes tab without completing, sign them out
+    // Next login will redirect back to onboarding (program still NULL)
+    window.addEventListener('beforeunload', () => {
+      if (!profileSaved) {
+        _supabase.auth.signOut();
+      }
+    });
   </script>
 </body>
 </html>
