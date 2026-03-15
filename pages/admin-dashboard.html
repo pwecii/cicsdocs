@@ -14,7 +14,7 @@
     body { font-family:'DM Sans',sans-serif; background:#F0F2F7; min-height:100vh; }
 
     /* Sidebar */
-    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; }
+    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; overflow-y:auto; }
     .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
     .sidebar-brand .title { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:#fff; letter-spacing:.05em; }
     .sidebar-brand .title span { color:var(--gold); }
@@ -24,7 +24,7 @@
     .nav-item:hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.85); }
     .nav-item.active { background:rgba(212,168,71,.15); color:var(--gold2); }
     .nav-item .icon { font-size:1rem; }
-    .sidebar-footer { margin-top:auto; padding:1rem 1.25rem 5rem; border-top:1px solid rgba(255,255,255,.07); }
+    .sidebar-footer { margin-top:auto; padding:1rem 1.25rem 7rem; border-top:1px solid rgba(255,255,255,.07); }
     .admin-info { display:flex; align-items:center; gap:.75rem; }
     .admin-avatar { width:34px; height:34px; border-radius:50%; background:rgba(212,168,71,.2); color:var(--gold); font-family:'Syne',sans-serif; font-weight:700; font-size:.85rem; display:flex; align-items:center; justify-content:center; }
     .admin-name { font-size:.82rem; color:rgba(255,255,255,.8); font-weight:500; }
@@ -213,8 +213,8 @@
       .upload-card { padding:1.25rem; }
       .upload-btn { width:100%; }
       .drop-zone { padding:1.75rem 1rem; }
-      .sidebar-footer { padding-bottom:max(1.25rem, env(safe-area-inset-bottom)); margin-bottom:.5rem; }
-      .logout-link { font-size:.82rem; margin-top:.75rem; padding:.5rem 0; }
+      .sidebar-footer { padding:1rem 1.25rem 1.5rem !important; margin-bottom:0; position:relative; bottom:0; }
+      .logout-link { font-size:.82rem; margin-top:.75rem; padding:.5rem 0; display:block !important; }
       .modal { padding:1.75rem 1.25rem; }
       .toast { right:.75rem; bottom:1rem; left:.75rem; max-width:none; font-size:.82rem; }
     }
@@ -246,7 +246,6 @@
     <button class="nav-item" onclick="showPage('reports',this)"><span class="icon">📈</span><span>Reports</span></button>
 
     <div class="sidebar-footer">
-      <button class="logout-link" onclick="handleLogout()" style="margin-bottom:.75rem;margin-top:0;">← Sign out</button>
       <div class="admin-info">
         <div class="admin-avatar" id="sidebarAvatar">A</div>
         <div>
@@ -254,6 +253,7 @@
           <div class="admin-role">Administrator</div>
         </div>
       </div>
+      <button class="logout-link" onclick="handleLogout()" style="margin-top:.75rem;">← Sign out</button>
     </div>
   </aside>
 
