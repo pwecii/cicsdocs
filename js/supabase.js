@@ -93,32 +93,36 @@ async function requireAuth(adminOnly = false) {
   return { session, profile };
 }
 
-// ── Login log ───────────────────────────────────────────────
+// ── Login log (once per user per day) ───────────────────────
 async function logLogin(userId) {
-  // Only log once per user per day
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayStr = new Date().toISOString().slice(0, 10); // e.g. "2026-03-15"
 
+  // Check if already logged today
   const { data: existing } = await _supabase
     .from('login_logs')
     .select('id')
     .eq('user_id', userId)
-    .gte('logged_in_at', today.toISOString())
-    .lt('logged_in_at', tomorrow.toISOString())
+    .eq('login_date', todayStr)
     .limit(1);
 
   if (!existing || existing.length === 0) {
-    await _supabase.from('login_logs').insert({ user_id: userId });
+    await _supabase.from('login_logs').insert({
+      user_id: userId,
+      login_date: todayStr
+    });
   }
 
-  await _supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', userId);
+  await _supabase.from('profiles')
+    .update({ last_login: new Date().toISOString() })
+    .eq('id', userId);
 }
 
 // ── Download log ────────────────────────────────────────────
 async function logDownload(documentId, userId) {
-  await _supabase.from('download_logs').insert({ document_id: documentId, user_id: userId });
+  await _supabase.from('download_logs').insert({
+    document_id: documentId,
+    user_id: userId
+  });
 }
 
 // ── Get signed URL for a document ───────────────────────────
@@ -132,7 +136,7 @@ async function getDocumentURL(filePath) {
 
 // ── Auto logout after 5 minutes of inactivity ───────────────
 function startIdleTimer() {
-  const IDLE_LIMIT = 5 * 60 * 1000; // 5 minutes
+  const IDLE_LIMIT = 5 * 60 * 1000;
   let timer = null;
 
   function resetTimer() {
@@ -149,12 +153,10 @@ function startIdleTimer() {
     }, IDLE_LIMIT);
   }
 
-  // Reset timer on any user activity
   ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(event => {
     document.addEventListener(event, resetTimer, true);
   });
 
-  // Start the timer immediately
   resetTimer();
 }
 
@@ -163,12 +165,3 @@ function startIdleTimer() {
   const session = await getSession();
   if (session) startIdleTimer();
 })();
-
-// ── Auto logout when browser/tab is closed ──────────────────
-window.addEventListener('beforeunload', () => {
-  navigator.sendBeacon(
-    SUPABASE_URL + '/auth/v1/logout',
-    new Blob([JSON.stringify({})], { type: 'application/json' })
-  );
-  _supabase.auth.signOut();
-});
