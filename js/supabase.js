@@ -95,26 +95,36 @@ async function requireAuth(adminOnly = false) {
 
 // ── Login log (once per user per day) ───────────────────────
 async function logLogin(userId) {
-  const todayStr = new Date().toISOString().slice(0, 10); // e.g. "2026-03-15"
+  const todayStr = new Date().toISOString().slice(0, 10);
 
-  // Check if already logged today
-  const { data: existing } = await _supabase
-    .from('login_logs')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('login_date', todayStr)
-    .limit(1);
+  // Check first, then insert — ignore any errors silently
+  try {
+    const { data: existing } = await _supabase
+      .from('login_logs')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('login_date', todayStr)
+      .limit(1);
 
-  if (!existing || existing.length === 0) {
-    await _supabase.from('login_logs').insert({
-      user_id: userId,
-      login_date: todayStr
-    });
+    if (!existing || existing.length === 0) {
+      await _supabase.from('login_logs').insert({
+        user_id: userId,
+        login_date: todayStr
+      });
+    }
+  } catch(e) {
+    // Silently ignore duplicate/conflict errors
+    console.log('Login log skipped:', e.message);
   }
 
-  await _supabase.from('profiles')
-    .update({ last_login: new Date().toISOString() })
-    .eq('id', userId);
+  // Always update last_login timestamp
+  try {
+    await _supabase.from('profiles')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', userId);
+  } catch(e) {
+    console.log('Last login update skipped:', e.message);
+  }
 }
 
 // ── Download log ────────────────────────────────────────────
