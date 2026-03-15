@@ -19,7 +19,6 @@
     @media (max-width:500px) {
       .card { padding:2.25rem 1.5rem; border-radius:16px; }
       h2 { font-size:1.1rem; }
-      .debug { font-size:.65rem; }
     }
   </style>
 </head>
@@ -35,14 +34,6 @@
   <script src="../js/supabase.js"></script>
   <script>
     async function init() {
-      // ── Prevent callback from running more than once ──
-      if (sessionStorage.getItem('auth_callback_running')) {
-        console.log('Callback already running, redirecting to login.');
-        window.location.href = '../index.html';
-        return;
-      }
-      sessionStorage.setItem('auth_callback_running', '1');
-
       console.log('Callback URL:', window.location.href);
       document.getElementById('debug').textContent = 'Processing…';
 
@@ -52,28 +43,22 @@
 
       while (!session && attempts < maxAttempts) {
         await new Promise(r => setTimeout(r, 500));
-        const { data, error } = await _supabase.auth.getSession();
-        console.log('Attempt', attempts + 1, '- Session:', data?.session ? 'found' : 'not found', error ? 'Error:' + error.message : '');
-        if (data?.session) {
-          session = data.session;
-          break;
-        }
+        const { data } = await _supabase.auth.getSession();
+        if (data?.session) { session = data.session; break; }
         attempts++;
       }
 
+      // Try code exchange if still no session
       if (!session) {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
+        const code = new URLSearchParams(window.location.search).get('code');
         if (code) {
           document.getElementById('debug').textContent = 'Exchanging code…';
-          const { data, error } = await _supabase.auth.exchangeCodeForSession(code);
-          console.log('Code exchange result:', data, error);
+          const { data } = await _supabase.auth.exchangeCodeForSession(code);
           if (data?.session) session = data.session;
         }
       }
 
       if (!session) {
-        sessionStorage.removeItem('auth_callback_running');
         document.getElementById('spinner').style.display = 'none';
         document.getElementById('title').textContent = 'Sign-in failed';
         document.getElementById('sub').textContent = '';
@@ -89,11 +74,10 @@
 
       // Enforce NEU domain
       if (!email.endsWith('@neu.edu.ph')) {
-        sessionStorage.removeItem('auth_callback_running');
         await _supabase.auth.signOut();
         document.getElementById('spinner').style.display = 'none';
         document.getElementById('title').textContent = 'Access denied';
-        document.getElementById('err').textContent = 'Only @neu.edu.ph accounts are allowed. You used: ' + email;
+        document.getElementById('err').textContent = 'Only @neu.edu.ph accounts are allowed.';
         document.getElementById('err').style.display = 'block';
         setTimeout(() => window.location.href = '../index.html', 4000);
         return;
@@ -115,7 +99,6 @@
       }
 
       if (!profile) {
-        sessionStorage.removeItem('auth_callback_running');
         document.getElementById('err').textContent = 'Could not load profile. Please try again.';
         document.getElementById('err').style.display = 'block';
         setTimeout(() => window.location.href = '../index.html', 3000);
@@ -123,7 +106,6 @@
       }
 
       if (profile.is_blocked) {
-        sessionStorage.removeItem('auth_callback_running');
         await _supabase.auth.signOut();
         document.getElementById('spinner').style.display = 'none';
         document.getElementById('title').textContent = 'Account blocked';
@@ -133,16 +115,10 @@
         return;
       }
 
-      // ── Log login only once per day ──
-      const callbackKey = 'login_logged_' + session.user.id + '_' + new Date().toDateString();
-      if (!sessionStorage.getItem(callbackKey)) {
-        sessionStorage.setItem(callbackKey, '1');
-        await logLogin(session.user.id);
-      }
+      // Log login — logLogin handles once-per-day check internally
+      await logLogin(session.user.id);
 
-      // Clear the running flag before redirecting
-      sessionStorage.removeItem('auth_callback_running');
-
+      // Redirect
       if (profile.role === 'admin') {
         window.location.href = 'admin-dashboard.html';
       } else if (!profile.program) {
