@@ -3,93 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CICS DocHub — Set Up Your Profile</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>CICS DocHub — Authenticating…</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400&display=swap" rel="stylesheet" />
   <style>
-    :root { --navy:#0A1628; --gold:#D4A847; --gold2:#F0C96B; --cream:#FAF6EE; }
-    body { font-family:'DM Sans',sans-serif; background:var(--navy); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
-    .card { background:var(--cream); border-radius:24px; padding:3rem; width:100%; max-width:520px; position:relative; overflow:hidden; }
-    .card::before { content:''; position:absolute; top:0;left:0;right:0; height:5px; background:linear-gradient(90deg,var(--gold),var(--gold2)); }
-    .step-badge { display:inline-flex; align-items:center; gap:.5rem; background:rgba(212,168,71,.12); border:1px solid rgba(212,168,71,.3); color:var(--gold); font-size:.75rem; font-weight:600; padding:.3rem .85rem; border-radius:100px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:1.5rem; }
-    h1 { font-family:'Syne',sans-serif; font-size:1.85rem; font-weight:800; color:var(--navy); line-height:1.15; margin-bottom:.6rem; }
-    p.sub { font-size:.9rem; color:#6B7A99; line-height:1.7; margin-bottom:2rem; }
-    .avatar { width:56px; height:56px; border-radius:50%; object-fit:cover; border:3px solid var(--gold); margin-bottom:1.25rem; }
-    .avatar-placeholder { width:56px; height:56px; border-radius:50%; background:#0A1628; color:var(--gold); font-family:'Syne',sans-serif; font-weight:700; font-size:1.25rem; display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem; }
-    label { display:block; font-size:.83rem; font-weight:600; color:#4A5680; letter-spacing:.04em; text-transform:uppercase; margin-bottom:.5rem; }
-    select, input[type=text] {
-      width:100%; background:#fff; border:2px solid #DDE3EE; border-radius:10px;
-      padding:.85rem 1rem; font-family:'DM Sans',sans-serif; font-size:.95rem; color:var(--navy);
-      outline:none; transition:border-color .2s; margin-bottom:1.5rem; appearance:none;
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'DM Sans',sans-serif; background:#0A1628; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1rem; }
+    .card { background:#FAF6EE; border-radius:20px; padding:3rem; text-align:center; width:100%; max-width:360px; }
+    .spinner { width:48px; height:48px; border:4px solid #DDE3EE; border-top-color:#D4A847; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 1.5rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    h2 { font-family:'Syne',sans-serif; font-size:1.3rem; color:#0A1628; margin-bottom:.5rem; }
+    p  { font-size:.88rem; color:#6B7A99; }
+    .err { color:#EF4444; font-weight:500; margin-top:1rem; font-size:.88rem; }
+    .debug { font-size:.7rem; color:#aaa; margin-top:1rem; word-break:break-all; }
+
+    @media (max-width: 500px) {
+      .card { padding: 2.25rem 1.5rem; border-radius: 16px; }
+      h2 { font-size: 1.1rem; }
+      .debug { font-size: .65rem; }
     }
-    select:focus, input[type=text]:focus { border-color:var(--gold); }
-    .submit-btn { width:100%; background:var(--navy); color:#fff; font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; padding:1rem; border:none; border-radius:12px; cursor:pointer; transition:all .2s; }
-    .submit-btn:hover { background:#162340; transform:translateY(-1px); box-shadow:0 8px 24px rgba(10,22,40,.25); }
-    .submit-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
-    .select-wrapper { position:relative; }
-    .select-wrapper::after { content:'▾'; position:absolute; right:1rem; top:50%; transform:translateY(-60%); color:var(--gold); font-size:.85rem; pointer-events:none; margin-top:-0.75rem; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div id="avatarArea"></div>
-    <div class="step-badge">✦ First time setup</div>
-    <h1>Almost there!</h1>
-    <p class="sub">Tell us your undergraduate program so we can show you the most relevant documents. You can always change this later.</p>
-
-    <label for="fullName">Full Name</label>
-    <input type="text" id="fullName" placeholder="e.g. Juan dela Cruz" />
-
-    <label for="program">Undergraduate Program</label>
-    <div class="select-wrapper">
-      <select id="program">
-        <option value="">— Select your program —</option>
-        <option value="BSCS">BS Computer Science (BSCS)</option>
-        <option value="BSIT">BS Information Technology (BSIT)</option>
-        <option value="BSIS">BS Information Systems (BSIS)</option>
-        <option value="BSEMC">BS Entertainment &amp; Multimedia Computing (BSEMC)</option>
-      </select>
-    </div>
-
-    <button class="submit-btn" id="saveBtn" onclick="saveProfile()">Save &amp; Continue →</button>
+    <div class="spinner" id="spinner"></div>
+    <h2 id="title">Signing you in…</h2>
+    <p id="sub">Please wait while we verify your account.</p>
+    <p class="err" id="err" style="display:none"></p>
+    <p class="debug" id="debug"></p>
   </div>
 
   <script src="../js/supabase.js"></script>
   <script>
-    let currentUserId = null;
-    (async () => {
-      const auth = await requireAuth(false);
-      if (!auth) return;
-      const { session, profile } = auth;
-      currentUserId = session.user.id;
-      if (profile.program) { window.location.href = 'student-dashboard.html'; return; }
+    async function init() {
+      console.log('Callback URL:', window.location.href);
+      document.getElementById('debug').textContent = 'Processing…';
 
-      // Prefill name
-      const nameFromMeta = session.user.user_metadata?.full_name || '';
-      document.getElementById('fullName').value = nameFromMeta;
+      let session = null;
+      let attempts = 0;
+      const maxAttempts = 20;
 
-      // Avatar
-      const pic = session.user.user_metadata?.avatar_url;
-      const area = document.getElementById('avatarArea');
-      if (pic) {
-        area.innerHTML = `<img src="${pic}" class="avatar" />`;
-      } else {
-        const initials = nameFromMeta.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() || '?';
-        area.innerHTML = `<div class="avatar-placeholder">${initials}</div>`;
+      while (!session && attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 500));
+        const { data, error } = await _supabase.auth.getSession();
+        console.log('Attempt', attempts + 1, '- Session:', data?.session ? 'found' : 'not found', error ? 'Error:' + error.message : '');
+        if (data?.session) {
+          session = data.session;
+          break;
+        }
+        attempts++;
       }
-    })();
 
-    async function saveProfile() {
-      const program = document.getElementById('program').value;
-      const fullName = document.getElementById('fullName').value.trim();
-      if (!program) { alert('Please select your program.'); return; }
-      if (!fullName) { alert('Please enter your full name.'); return; }
-      document.getElementById('saveBtn').disabled = true;
-      document.getElementById('saveBtn').textContent = 'Saving…';
-      await _supabase.from('profiles').update({ program, full_name: fullName }).eq('id', currentUserId);
-      window.location.href = 'student-dashboard.html';
+      if (!session) {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (code) {
+          document.getElementById('debug').textContent = 'Exchanging code…';
+          const { data, error } = await _supabase.auth.exchangeCodeForSession(code);
+          console.log('Code exchange result:', data, error);
+          if (data?.session) session = data.session;
+        }
+      }
+
+      if (!session) {
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('title').textContent = 'Sign-in failed';
+        document.getElementById('sub').textContent = '';
+        document.getElementById('err').textContent = 'No session found. Please try again.';
+        document.getElementById('err').style.display = 'block';
+        document.getElementById('debug').textContent = 'URL: ' + window.location.href;
+        setTimeout(() => window.location.href = '../index.html', 4000);
+        return;
+      }
+
+      const email = session.user.email;
+      document.getElementById('debug').textContent = 'Logged in as: ' + email;
+
+      if (!email.endsWith('@neu.edu.ph')) {
+        await _supabase.auth.signOut();
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('title').textContent = 'Access denied';
+        document.getElementById('err').textContent = 'Only @neu.edu.ph accounts are allowed. You used: ' + email;
+        document.getElementById('err').style.display = 'block';
+        setTimeout(() => window.location.href = '../index.html', 4000);
+        return;
+      }
+
+      let profile;
+      try {
+        profile = await getProfile(session.user.id);
+      } catch {
+        await _supabase.from('profiles').upsert({
+          id: session.user.id,
+          email,
+          full_name: session.user.user_metadata?.full_name || email,
+          role: 'student'
+        });
+        try { profile = await getProfile(session.user.id); }
+        catch(e) { console.error('Profile fetch failed:', e); }
+      }
+
+      if (!profile) {
+        document.getElementById('err').textContent = 'Could not load profile. Please try again.';
+        document.getElementById('err').style.display = 'block';
+        setTimeout(() => window.location.href = '../index.html', 3000);
+        return;
+      }
+
+      if (profile.is_blocked) {
+        await _supabase.auth.signOut();
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('title').textContent = 'Account blocked';
+        document.getElementById('err').textContent = 'Your account has been blocked. Contact the administrator.';
+        document.getElementById('err').style.display = 'block';
+        setTimeout(() => window.location.href = '../index.html', 4000);
+        return;
+      }
+
+      await logLogin(session.user.id);
+
+      if (profile.role === 'admin') {
+        window.location.href = 'admin-dashboard.html';
+      } else if (!profile.program) {
+        window.location.href = 'onboarding.html';
+      } else {
+        window.location.href = 'student-dashboard.html';
+      }
     }
+
+    init();
   </script>
 </body>
 </html>
