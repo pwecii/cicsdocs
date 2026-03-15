@@ -4,6 +4,7 @@
 
 const SUPABASE_URL  = 'https://nvzwwgfnumcjnqxixdso.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52end3Z2ZudW1jam5xeGl4ZHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0ODA5NDksImV4cCI6MjA4OTA1Njk0OX0.L_46KyZO6V_msGvwf_uoSy_lV7_VHYS0g4o24qbOGyI';
+
 const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
     flowType: 'pkce',
@@ -128,3 +129,46 @@ async function getDocumentURL(filePath) {
   if (error) throw error;
   return data.signedUrl;
 }
+
+// ── Auto logout after 5 minutes of inactivity ───────────────
+function startIdleTimer() {
+  const IDLE_LIMIT = 5 * 60 * 1000; // 5 minutes
+  let timer = null;
+
+  function resetTimer() {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const session = await getSession();
+      if (session) {
+        await signOut();
+        alert('You have been logged out due to 5 minutes of inactivity.');
+        window.location.href = window.location.pathname.includes('/pages/')
+          ? '../index.html'
+          : 'index.html';
+      }
+    }, IDLE_LIMIT);
+  }
+
+  // Reset timer on any user activity
+  ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(event => {
+    document.addEventListener(event, resetTimer, true);
+  });
+
+  // Start the timer immediately
+  resetTimer();
+}
+
+// Only start idle timer on authenticated pages
+(async () => {
+  const session = await getSession();
+  if (session) startIdleTimer();
+})();
+
+// ── Auto logout when browser/tab is closed ──────────────────
+window.addEventListener('beforeunload', () => {
+  navigator.sendBeacon(
+    SUPABASE_URL + '/auth/v1/logout',
+    new Blob([JSON.stringify({})], { type: 'application/json' })
+  );
+  _supabase.auth.signOut();
+});
