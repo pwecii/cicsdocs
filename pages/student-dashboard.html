@@ -7,8 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root { --navy:#0A1628; --gold:#D4A847; --gold2:#F0C96B; --cream:#FAF6EE; --muted:#8B9AB5; }
     * { box-sizing:border-box; margin:0; padding:0; }
@@ -16,14 +16,15 @@
 
     /* ── Navbar ── */
     nav { background:var(--navy); padding:0 2rem; height:64px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-    .nav-brand { font-family:'Syne',sans-serif; font-weight:720; font-size:1.05rem; color:#fff; letter-spacing:.05em; display:flex; align-items:center; gap:.6rem; }
+    .nav-brand { font-family:'Syne',sans-serif; font-weight:720; font-size:1.05rem; color:#fff; letter-spacing:.05em; display:flex; align-items:center; gap:.6rem; white-space:nowrap; }
     .nav-brand span { color:var(--gold); }
-    .nav-right { display:flex; align-items:center; gap:1.25rem; }
-    .nav-user { display:flex; align-items:center; gap:.65rem; }
-    .nav-user img, .nav-avatar { width:32px; height:32px; border-radius:50%; border:2px solid var(--gold); object-fit:cover; }
+    .nav-brand img { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
+    .nav-right { display:flex; align-items:center; gap:.75rem; flex-shrink:0; }
+    .nav-user { display:flex; align-items:center; gap:.55rem; }
+    .nav-user img, .nav-avatar { width:32px; height:32px; border-radius:50%; border:2px solid var(--gold); object-fit:cover; flex-shrink:0; }
     .nav-avatar { background:#162340; color:var(--gold); font-family:'Syne',sans-serif; font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center; }
-    .nav-name { font-size:.85rem; color:rgba(255,255,255,.8); font-weight:500; }
-    .logout-btn { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.7); font-size:.8rem; padding:.35rem .85rem; border-radius:8px; cursor:pointer; transition:all .15s; }
+    .nav-name { font-size:.85rem; color:rgba(255,255,255,.8); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+    .logout-btn { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.7); font-size:.8rem; padding:.35rem .85rem; border-radius:8px; cursor:pointer; transition:all .15s; white-space:nowrap; }
     .logout-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
 
     /* ── Layout ── */
@@ -35,16 +36,16 @@
 
     /* ── Search & filter ── */
     .toolbar { display:flex; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; }
-    .search-wrap { flex:1; min-width:220px; position:relative; }
+    .search-wrap { flex:1; min-width:200px; position:relative; }
     .search-wrap svg { position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--muted); }
     .search-input { width:100%; background:#fff; border:2px solid #DDE3EE; border-radius:12px; padding:.75rem 1rem .75rem 2.75rem; font-family:'DM Sans',sans-serif; font-size:.93rem; outline:none; transition:border-color .2s; }
     .search-input:focus { border-color:var(--gold); }
-    .filter-select { background:#fff; border:2px solid #DDE3EE; border-radius:12px; padding:.75rem 1rem; font-family:'DM Sans',sans-serif; font-size:.88rem; outline:none; cursor:pointer; transition:border-color .2s; min-width:180px; }
+    .filter-select { background:#fff; border:2px solid #DDE3EE; border-radius:12px; padding:.75rem 1rem; font-family:'DM Sans',sans-serif; font-size:.88rem; outline:none; cursor:pointer; transition:border-color .2s; min-width:160px; }
     .filter-select:focus { border-color:var(--gold); }
 
     /* ── Doc grid ── */
     .doc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.25rem; }
-    .doc-card { background:#fff; border-radius:16px; border:2px solid #E8ECF4; padding:1.5rem; display:flex; flex-direction:column; gap:1rem; transition:all .2s; cursor:default; }
+    .doc-card { background:#fff; border-radius:16px; border:2px solid #E8ECF4; padding:1.5rem; display:flex; flex-direction:column; gap:1rem; transition:all .2s; }
     .doc-card:hover { border-color:var(--gold); box-shadow:0 8px 24px rgba(212,168,71,.12); transform:translateY(-2px); }
     .doc-icon { width:48px; height:48px; background:#FFF3E0; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem; }
     .doc-category { font-size:.72rem; font-weight:600; color:var(--gold); text-transform:uppercase; letter-spacing:.08em; }
@@ -62,25 +63,57 @@
     .empty .emoji { font-size:3rem; margin-bottom:1rem; }
     .empty h3 { font-family:'Syne',sans-serif; color:var(--navy); margin-bottom:.5rem; }
 
-    /* ── Loading skeleton ── */
+    /* ── Skeleton ── */
     .skeleton { background:linear-gradient(90deg,#e8ecf4 25%,#f0f2f7 50%,#e8ecf4 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; border-radius:8px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
     /* ── Toast ── */
-    .toast { position:fixed; bottom:2rem; right:2rem; background:var(--navy); color:#fff; padding:.85rem 1.5rem; border-radius:10px; font-size:.88rem; box-shadow:0 8px 24px rgba(0,0,0,.2); transform:translateY(4rem); opacity:0; transition:all .3s; z-index:999; }
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; background:var(--navy); color:#fff; padding:.85rem 1.5rem; border-radius:10px; font-size:.88rem; box-shadow:0 8px 24px rgba(0,0,0,.2); transform:translateY(4rem); opacity:0; transition:all .3s; z-index:999; max-width:calc(100vw - 3rem); }
     .toast.show { transform:translateY(0); opacity:1; }
     .toast.success { background:#16A34A; }
     .toast.error { background:#DC2626; }
+
+    /* ── TABLET ≤ 768px ── */
+    @media (max-width: 768px) {
+      nav { padding:0 1.25rem; height:58px; }
+      .nav-brand { font-size:.92rem; gap:.45rem; }
+      .nav-brand img { width:30px; height:30px; }
+      .nav-name { max-width:100px; font-size:.78rem; }
+      .logout-btn { font-size:.75rem; padding:.3rem .65rem; }
+      main { padding:1.75rem 1rem; }
+      .welcome h1 { font-size:1.35rem; }
+      .doc-grid { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:1rem; }
+    }
+
+    /* ── MOBILE ≤ 500px ── */
+    @media (max-width: 500px) {
+      nav { padding:0 1rem; height:56px; }
+      .nav-brand { font-size:.85rem; gap:.35rem; }
+      .nav-brand img { width:28px; height:28px; }
+      .nav-name { display:none; }
+      .nav-right { gap:.5rem; }
+      .logout-btn { font-size:.72rem; padding:.28rem .55rem; }
+      main { padding:1.25rem .85rem; }
+      .welcome h1 { font-size:1.2rem; }
+      .welcome p { font-size:.83rem; }
+      .toolbar { gap:.65rem; }
+      .search-input { font-size:.85rem; padding:.65rem .85rem .65rem 2.5rem; }
+      .filter-select { font-size:.82rem; padding:.65rem .75rem; min-width:130px; }
+      .doc-grid { grid-template-columns:1fr; gap:.85rem; }
+      .doc-card { padding:1.25rem; }
+      .doc-title { font-size:.95rem; }
+      .btn-view, .btn-download { font-size:.8rem; padding:.55rem; }
+    }
   </style>
 </head>
 <body>
 
   <!-- Navbar -->
   <nav>
-<div class="nav-brand">
-  <img src="../images/neu.png" alt="NEU Logo" style="width:40px;height:40px;object-fit:contain;margin-right:.6rem;vertical-align:middle;" />
-  CICS <span>DocHub</span>
-</div>
+    <div class="nav-brand">
+      <img src="../images/neu.png" alt="NEU Logo" />
+      CICS <span>DocHub</span>
+    </div>
     <div class="nav-right">
       <div class="nav-user">
         <div id="navAvatar" class="nav-avatar">?</div>
@@ -108,11 +141,11 @@
       </select>
     </div>
 
-<div class="doc-grid" id="docGrid">
-  <div class="doc-card"><div class="skeleton" style="height:48px;width:48px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div><div class="skeleton" style="height:20px;width:90%;margin-top:8px"></div><div class="skeleton" style="height:48px;margin-top:8px"></div></div>
-  <div class="doc-card"><div class="skeleton" style="height:48px;width:48px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div><div class="skeleton" style="height:20px;width:90%;margin-top:8px"></div><div class="skeleton" style="height:48px;margin-top:8px"></div></div>
-  <div class="doc-card"><div class="skeleton" style="height:48px;width:48px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div><div class="skeleton" style="height:20px;width:90%;margin-top:8px"></div><div class="skeleton" style="height:48px;margin-top:8px"></div></div>
-</div>
+    <div class="doc-grid" id="docGrid">
+      <div class="doc-card"><div class="skeleton" style="height:48px;width:48px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div><div class="skeleton" style="height:20px;width:90%;margin-top:8px"></div><div class="skeleton" style="height:48px;margin-top:8px"></div></div>
+      <div class="doc-card"><div class="skeleton" style="height:48px;width:48px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div><div class="skeleton" style="height:20px;width:90%;margin-top:8px"></div><div class="skeleton" style="height:48px;margin-top:8px"></div></div>
+      <div class="doc-card"><div class="skeleton" style="height:48px;width:48px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:60%;margin-top:8px"></div><div class="skeleton" style="height:20px;width:90%;margin-top:8px"></div><div class="skeleton" style="height:48px;margin-top:8px"></div></div>
+    </div>
   </main>
 
   <div class="toast" id="toast"></div>
@@ -134,7 +167,6 @@
       const { session, profile } = auth;
       currentUserId = session.user.id;
 
-      // Nav
       const name = profile.full_name || session.user.email;
       const first = name.split(' ')[0];
       document.getElementById('firstName').textContent = first;
@@ -149,31 +181,24 @@
 
     async function loadDocuments() {
       const { data, error } = await _supabase
-        .from('documents')
-        .select('*')
-        .eq('is_active', true)
+        .from('documents').select('*').eq('is_active', true)
         .order('created_at', { ascending: false });
-
       if (error) { showToast('Failed to load documents.', 'error'); return; }
       allDocs = data || [];
-
-      // Populate category filter
       const cats = [...new Set(allDocs.map(d => d.category).filter(Boolean))];
       const sel = document.getElementById('categoryFilter');
       cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
-
       renderDocs(allDocs);
     }
 
     function filterDocs() {
       const q = document.getElementById('searchInput').value.toLowerCase();
       const cat = document.getElementById('categoryFilter').value;
-      const filtered = allDocs.filter(d => {
+      renderDocs(allDocs.filter(d => {
         const matchQ = !q || d.title.toLowerCase().includes(q) || (d.description||'').toLowerCase().includes(q);
         const matchC = !cat || d.category === cat;
         return matchQ && matchC;
-      });
-      renderDocs(filtered);
+      }));
     }
 
     function renderDocs(docs) {
@@ -186,8 +211,7 @@
         const icon = CATEGORY_ICONS[doc.category] || CATEGORY_ICONS.default;
         const size = doc.file_size ? formatSize(doc.file_size) : '';
         const date = new Date(doc.created_at).toLocaleDateString('en-PH', {month:'short',day:'numeric',year:'numeric'});
-        return `
-          <div class="doc-card">
+        return `<div class="doc-card">
             <div class="doc-icon">${icon}</div>
             <div>
               <div class="doc-category">${doc.category || 'General'}</div>
