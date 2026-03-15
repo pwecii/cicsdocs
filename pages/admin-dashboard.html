@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CICS DocHub — Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root { --navy:#0A1628; --gold:#D4A847; --gold2:#F0C96B; --cream:#FAF6EE; --muted:#8B9AB5; --blue:#3B5BDB; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'DM Sans',sans-serif; background:#F0F2F7; min-height:100vh; }
+
+    /* Sidebar */
+    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; }
+    .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
+    .sidebar-brand .title { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:#fff; letter-spacing:.05em; }
+    .sidebar-brand .title span { color:var(--gold); }
+    .sidebar-brand .subtitle { font-size:.72rem; color:var(--muted); margin-top:.2rem; letter-spacing:.05em; text-transform:uppercase; }
+    .nav-section { padding:1.25rem .85rem .5rem; font-size:.68rem; font-weight:700; color:rgba(255,255,255,.25); letter-spacing:.12em; text-transform:uppercase; }
+    .nav-item { display:flex; align-items:center; gap:.75rem; padding:.7rem 1.1rem; margin:.1rem .5rem; border-radius:10px; color:rgba(255,255,255,.55); font-size:.875rem; font-weight:500; cursor:pointer; transition:all .15s; border:none; background:none; width:calc(100% - 1rem); text-align:left; }
+    .nav-item:hover { background:rgba(255,255,255,.06); color:rgba(255,255,255,.85); }
+    .nav-item.active { background:rgba(212,168,71,.15); color:var(--gold2); }
+    .nav-item .icon { font-size:1rem; }
+    .sidebar-footer { margin-top:auto; padding:1.25rem; border-top:1px solid rgba(255,255,255,.07); }
+    .admin-info { display:flex; align-items:center; gap:.75rem; }
+    .admin-avatar { width:34px; height:34px; border-radius:50%; background:rgba(212,168,71,.2); color:var(--gold); font-family:'Syne',sans-serif; font-weight:700; font-size:.85rem; display:flex; align-items:center; justify-content:center; }
+    .admin-name { font-size:.82rem; color:rgba(255,255,255,.8); font-weight:500; }
+    .admin-role { font-size:.7rem; color:var(--muted); }
+    .logout-link { font-size:.75rem; color:var(--muted); cursor:pointer; margin-top:.5rem; display:block; transition:color .15s; background:none; border:none; padding:0; width:100%; text-align:left; }
+    .logout-link:hover { color:#fff; }
+
+    /* Content area */
+    .content { margin-left:240px; min-height:100vh; }
+    .topbar { background:#fff; border-bottom:1px solid #E8ECF4; height:60px; display:flex; align-items:center; justify-content:space-between; padding:0 2rem; position:sticky; top:0; z-index:40; }
+    .topbar h1 { font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:700; color:var(--navy); }
+    .page { display:none; padding:2rem; }
+    .page.active { display:block; }
+
+    /* Stats cards */
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .stat-card { background:#fff; border-radius:16px; padding:1.5rem; border:2px solid #E8ECF4; }
+    .stat-label { font-size:.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.5rem; }
+    .stat-value { font-family:'DM Sans',sans-serif; font-size:1.75rem; font-weight:700; color:var(--navy); letter-spacing:-.02em; }
+    .stat-sub { font-size:.75rem; color:var(--muted); margin-top:.25rem; }
+    .stat-card.gold { border-color:rgba(212,168,71,.3); background:linear-gradient(135deg,#FFFBEF,#FFF8E1); }
+    .stat-card.gold .stat-value { color:#8A6A10; }
+
+    /* Chart card */
+    .chart-card { background:#fff; border-radius:16px; padding:1.75rem; border:2px solid #E8ECF4; margin-bottom:2rem; }
+    .chart-card h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--navy); margin-bottom:1.25rem; }
+    .chart-toolbar { display:flex; gap:.5rem; margin-bottom:1.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    .period-btn { background:#F0F2F7; border:none; border-radius:8px; padding:.4rem .9rem; font-size:.8rem; font-weight:600; color:#6B7A99; cursor:pointer; transition:all .15s; }
+    .period-btn.active { background:var(--navy); color:#fff; }
+    .date-range { display:flex; gap:.5rem; align-items:center; }
+    .date-range input { background:#fff; border:1.5px solid #DDE3EE; border-radius:8px; padding:.4rem .75rem; font-size:.8rem; outline:none; }
+    .date-range button { background:var(--navy); color:#fff; border:none; border-radius:8px; padding:.4rem .9rem; font-size:.8rem; cursor:pointer; }
+
+    /* Table */
+    .table-card { background:#fff; border-radius:16px; border:2px solid #E8ECF4; overflow:hidden; margin-bottom:2rem; }
+    .table-header { display:flex; align-items:center; justify-content:space-between; padding:1.25rem 1.5rem; border-bottom:1px solid #E8ECF4; }
+    .table-header h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--navy); }
+    .search-sm { background:#F0F2F7; border:1.5px solid #E8ECF4; border-radius:8px; padding:.45rem .9rem; font-size:.83rem; outline:none; width:220px; }
+    .search-sm:focus { border-color:var(--gold); background:#fff; }
+    table { width:100%; border-collapse:collapse; }
+    thead th { background:#F8F9FC; padding:.85rem 1.25rem; text-align:left; font-size:.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #E8ECF4; }
+    tbody tr { border-bottom:1px solid #F0F2F7; transition:background .1s; }
+    tbody tr:hover { background:#FAFBFF; }
+    tbody td { padding:.85rem 1.25rem; font-size:.875rem; color:var(--navy); vertical-align:middle; }
+    .badge { display:inline-block; font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:100px; letter-spacing:.04em; text-transform:uppercase; }
+    .badge-admin { background:rgba(59,91,219,.1); color:var(--blue); }
+    .badge-student { background:rgba(22,163,74,.1); color:#16A34A; }
+    .badge-blocked { background:rgba(220,38,38,.1); color:#DC2626; }
+    .badge-active { background:rgba(22,163,74,.1); color:#16A34A; }
+    .action-btn { background:none; border:1.5px solid #DDE3EE; border-radius:6px; padding:.3rem .7rem; font-size:.75rem; font-weight:600; cursor:pointer; transition:all .15s; margin-right:.35rem; }
+    .action-btn:hover { background:#F0F2F7; }
+    .action-btn.danger { border-color:#FECACA; color:#DC2626; }
+    .action-btn.danger:hover { background:#FEF2F2; }
+    .action-btn.warn { border-color:#FDE68A; color:#D97706; }
+    .action-btn.warn:hover { background:#FFFBEB; }
+    .action-btn.success { border-color:#A7F3D0; color:#059669; }
+    .action-btn.success:hover { background:#ECFDF5; }
+
+    /* Upload area */
+    .upload-card { background:#fff; border-radius:16px; border:2px solid #E8ECF4; padding:2rem; margin-bottom:2rem; }
+    .upload-card h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--navy); margin-bottom:1.5rem; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+    .form-group { display:flex; flex-direction:column; gap:.4rem; }
+    label.fl { font-size:.78rem; font-weight:600; color:#4A5680; letter-spacing:.04em; text-transform:uppercase; }
+    input.fi, select.fi, textarea.fi { background:#F8F9FC; border:2px solid #E8ECF4; border-radius:10px; padding:.75rem 1rem; font-family:'DM Sans',sans-serif; font-size:.9rem; color:var(--navy); outline:none; transition:border-color .2s; }
+    input.fi:focus, select.fi:focus, textarea.fi:focus { border-color:var(--gold); background:#fff; }
+    textarea.fi { resize:vertical; min-height:80px; }
+    .drop-zone { border:2px dashed #DDE3EE; border-radius:12px; padding:2.5rem; text-align:center; cursor:pointer; transition:all .2s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color:var(--gold); background:rgba(212,168,71,.04); }
+    .drop-zone .icon { font-size:2.5rem; margin-bottom:.75rem; }
+    .drop-zone p { font-size:.9rem; color:var(--muted); }
+    .drop-zone strong { color:var(--gold); cursor:pointer; }
+    #fileInput { display:none; }
+    .selected-file { margin-top:.75rem; background:#F0F2F7; border-radius:8px; padding:.6rem 1rem; font-size:.83rem; color:var(--navy); display:none; }
+    .upload-btn { background:var(--navy); color:#fff; font-family:'Syne',sans-serif; font-weight:700; padding:.85rem 2rem; border:none; border-radius:12px; cursor:pointer; transition:all .2s; margin-top:1.25rem; }
+    .upload-btn:hover { background:#162340; transform:translateY(-1px); }
+    .upload-btn:disabled { opacity:.5; transform:none; cursor:not-allowed; }
+    .progress-bar { height:4px; background:#E8ECF4; border-radius:4px; margin-top:1rem; overflow:hidden; display:none; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--gold),var(--gold2)); border-radius:4px; transition:width .3s; }
+
+    /* Modal */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(10,22,40,.5); backdrop-filter:blur(4px); z-index:200; display:none; align-items:center; justify-content:center; }
+    .modal-backdrop.show { display:flex; }
+    .modal { background:var(--cream); border-radius:20px; padding:2.25rem; width:90%; max-width:440px; position:relative; }
+    .modal h3 { font-family:'Syne',sans-serif; font-size:1.25rem; font-weight:800; color:var(--navy); margin-bottom:.5rem; }
+    .modal p { font-size:.875rem; color:#6B7A99; line-height:1.6; margin-bottom:1.5rem; }
+    .modal-actions { display:flex; gap:.75rem; }
+    .modal-btn { flex:1; padding:.85rem; border:none; border-radius:10px; font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .15s; }
+    .modal-cancel { background:#F0F2F7; color:var(--navy); }
+    .modal-confirm { background:#DC2626; color:#fff; }
+    .modal-confirm.unblock { background:#16A34A; }
+
+    /* Download reports */
+    .report-card { background:#fff; border-radius:16px; border:2px solid #E8ECF4; padding:1.75rem; margin-bottom:2rem; }
+    .report-card h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--navy); margin-bottom:1.25rem; }
+    .report-form { display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end; }
+    .report-form .form-group { flex:1; min-width:160px; }
+    .report-btn { background:var(--navy); color:#fff; font-family:'Syne',sans-serif; font-weight:700; padding:.75rem 1.5rem; border:none; border-radius:10px; cursor:pointer; white-space:nowrap; transition:all .15s; }
+    .report-btn:hover { background:#162340; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:2rem; right:2rem; background:var(--navy); color:#fff; padding:.85rem 1.5rem; border-radius:10px; font-size:.88rem; box-shadow:0 8px 24px rgba(0,0,0,.2); transform:translateY(4rem); opacity:0; transition:all .3s; z-index:999; max-width:320px; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { background:#16A34A; }
+    .toast.error { background:#DC2626; }
+
+    /* Empty state */
+    .empty-state { text-align:center; padding:4rem 1rem; color:var(--muted); }
+    .empty-state .emoji { font-size:2.5rem; margin-bottom:.75rem; }
+
+    @media(max-width:900px) {
+      .sidebar { width:60px; }
+      .sidebar-brand .title, .sidebar-brand .subtitle, .nav-item span, .admin-info .admin-name, .admin-info .admin-role, .logout-link { display:none; }
+      .nav-item { justify-content:center; padding:.7rem; }
+      .content { margin-left:60px; }
+      .sidebar-footer .admin-info { justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="title">CICS <span>DocHub</span></div>
+      <div class="subtitle">Admin Portal</div>
+    </div>
+
+    <div class="nav-section">Main</div>
+    <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span><span>Dashboard</span></button>
+    <button class="nav-item" onclick="showPage('documents',this)"><span class="icon">📁</span><span>Documents</span></button>
+    <button class="nav-item" onclick="showPage('upload',this)"><span class="icon">⬆️</span><span>Upload</span></button>
+
+    <div class="nav-section">Management</div>
+    <button class="nav-item" onclick="showPage('students',this)"><span class="icon">🎓</span><span>Students</span></button>
+    <button class="nav-item" onclick="showPage('reports',this)"><span class="icon">📈</span><span>Reports</span></button>
+
+    <div class="sidebar-footer">
+      <div class="admin-info">
+        <div class="admin-avatar" id="sidebarAvatar">A</div>
+        <div>
+          <div class="admin-name" id="sidebarName">Admin</div>
+          <div class="admin-role">Administrator</div>
+        </div>
+      </div>
+      <button class="logout-link" onclick="handleLogout()">← Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="topbar">
+      <h1 id="pageTitle">Dashboard</h1>
+      <span id="topbarDate" style="font-size:.82rem;color:var(--muted)"></span>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-label">Total Students</div><div class="stat-value" id="st-students">—</div></div>
+        <div class="stat-card"><div class="stat-label">Active Docs</div><div class="stat-value" id="st-docs">—</div></div>
+        <div class="stat-card gold"><div class="stat-label">Total Downloads</div><div class="stat-value" id="st-downloads">—</div></div>
+        <div class="stat-card"><div class="stat-label">Logins Today</div><div class="stat-value" id="st-today">—</div></div>
+        <div class="stat-card"><div class="stat-label">Logins This Week</div><div class="stat-value" id="st-week">—</div></div>
+        <div class="stat-card"><div class="stat-label">Logins This Month</div><div class="stat-value" id="st-month">—</div></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-toolbar">
+          <h3>Login Activity</h3>
+          <div style="display:flex;gap:.5rem">
+            <button class="period-btn active" onclick="loadLoginChart('7d',this)">7 Days</button>
+            <button class="period-btn" onclick="loadLoginChart('30d',this)">30 Days</button>
+            <button class="period-btn" onclick="loadLoginChart('90d',this)">90 Days</button>
+          </div>
+        </div>
+        <canvas id="loginChart" height="100"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3>Top Downloaded Documents</h3>
+        <canvas id="dlChart" height="100"></canvas>
+      </div>
+    </div>
+
+    <!-- ── DOCUMENTS ── -->
+    <div class="page" id="page-documents">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>All Documents</h3>
+          <input type="text" class="search-sm" id="docSearch" placeholder="Search…" oninput="filterDocTable()" />
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Title</th><th>Category</th><th>Uploaded</th><th>Size</th><th>Status</th><th>Downloads</th><th>Actions</th></tr></thead>
+            <tbody id="docTableBody"><tr><td colspan="7" style="text-align:center;padding:3rem;color:var(--muted)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── UPLOAD ── -->
+    <div class="page" id="page-upload">
+      <div class="upload-card">
+        <h3>Upload New Document</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="fl">Document Title *</label>
+            <input type="text" class="fi" id="upTitle" placeholder="e.g. BSCS Curriculum 2024" />
+          </div>
+          <div class="form-group">
+            <label class="fl">Category *</label>
+            <select class="fi" id="upCategory">
+              <option value="">— Select category —</option>
+              <option>Forms</option><option>Policies</option><option>Curriculum</option>
+              <option>Announcements</option><option>Templates</option><option>Guidelines</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="fl">Description</label>
+          <textarea class="fi" id="upDesc" placeholder="Brief description of this document…"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem">
+          <label class="fl">PDF File *</label>
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="e=>{e.preventDefault();document.getElementById('dropZone').classList.add('drag-over')}" ondragleave="document.getElementById('dropZone').classList.remove('drag-over')" ondrop="handleDrop(event)">
+            <div class="icon">📄</div>
+            <p>Drag & drop a PDF here, or <strong>click to browse</strong></p>
+            <p style="font-size:.78rem;margin-top:.4rem">PDF files only · Max 20 MB</p>
+          </div>
+          <input type="file" id="fileInput" accept=".pdf" onchange="handleFileSelect(this.files[0])" />
+          <div class="selected-file" id="selectedFile"></div>
+        </div>
+        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <button class="upload-btn" id="uploadBtn" onclick="uploadDocument()">Upload Document</button>
+      </div>
+    </div>
+
+    <!-- ── STUDENTS ── -->
+    <div class="page" id="page-students">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Student Accounts</h3>
+          <input type="text" class="search-sm" id="stuSearch" placeholder="Search…" oninput="filterStudentTable()" />
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Program</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="stuTableBody"><tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--muted)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REPORTS ── -->
+    <div class="page" id="page-reports">
+      <div class="report-card">
+        <h3>📥 Export Download Report</h3>
+        <div class="report-form">
+          <div class="form-group">
+            <label class="fl">Period</label>
+            <select class="fi" id="rptPeriod" onchange="toggleCustomDates()">
+              <option value="daily">Today</option>
+              <option value="weekly">This Week</option>
+              <option value="monthly">This Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="form-group" id="customStart" style="display:none">
+            <label class="fl">From</label>
+            <input type="date" class="fi" id="rptFrom" />
+          </div>
+          <div class="form-group" id="customEnd" style="display:none">
+            <label class="fl">To</label>
+            <input type="date" class="fi" id="rptTo" />
+          </div>
+          <button class="report-btn" onclick="exportReport()">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="report-card">
+        <h3>📊 Login Report</h3>
+        <div class="report-form">
+          <div class="form-group">
+            <label class="fl">Period</label>
+            <select class="fi" id="loginRptPeriod" onchange="toggleLoginCustomDates()">
+              <option value="daily">Today</option>
+              <option value="weekly">This Week</option>
+              <option value="monthly">This Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          <div class="form-group" id="loginCustomStart" style="display:none">
+            <label class="fl">From</label>
+            <input type="date" class="fi" id="loginRptFrom" />
+          </div>
+          <div class="form-group" id="loginCustomEnd" style="display:none">
+            <label class="fl">To</label>
+            <input type="date" class="fi" id="loginRptTo" />
+          </div>
+          <button class="report-btn" onclick="exportLoginReport()">Export CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <h3 id="modalTitle">Confirm</h3>
+      <p id="modalBody">Are you sure?</p>
+      <div class="modal-actions">
+        <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn modal-confirm" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../js/supabase.js"></script>
+  <script>
+    // ─── State ───────────────────────────────────────────────
+    let currentAdminId = null;
+    let allStudents = [], allDocs = [], downloadCounts = {};
+    let selectedFile = null;
+    let loginChart = null, dlChart = null;
+
+    // ─── Init ────────────────────────────────────────────────
+    (async () => {
+      const auth = await requireAuth(true);
+      if (!auth) return;
+      const { session, profile } = auth;
+      currentAdminId = session.user.id;
+      const name = profile.full_name || session.user.email;
+      document.getElementById('sidebarName').textContent = name;
+      document.getElementById('sidebarAvatar').textContent = name.slice(0,2).toUpperCase();
+      document.getElementById('topbarDate').textContent = new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+      await Promise.all([loadStats(), loadDocuments(), loadStudents()]);
+      loadLoginChart('7d');
+      loadDlChart();
+    })();
+
+    // ─── Navigation ──────────────────────────────────────────
+    const pageTitles = { dashboard:'Dashboard', documents:'Documents', upload:'Upload Document', students:'Students', reports:'Reports' };
+    function showPage(id, btn) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-'+id).classList.add('active');
+      if (btn) btn.classList.add('active');
+      document.getElementById('pageTitle').textContent = pageTitles[id] || id;
+    }
+
+    // ─── Stats ───────────────────────────────────────────────
+    async function loadStats() {
+      const { data } = await _supabase.from('admin_stats').select('*').single();
+      if (!data) return;
+      document.getElementById('st-students').textContent = data.total_students;
+      document.getElementById('st-docs').textContent = data.active_documents;
+      document.getElementById('st-downloads').textContent = data.total_downloads;
+      document.getElementById('st-today').textContent = data.logins_today;
+      document.getElementById('st-week').textContent = data.logins_week;
+      document.getElementById('st-month').textContent = data.logins_month;
+    }
+
+    // ─── Login chart ─────────────────────────────────────────
+    async function loadLoginChart(period, btn) {
+      if (btn) { document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+      const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+      const from = new Date(); from.setDate(from.getDate() - days);
+      const { data } = await _supabase.from('login_logs').select('logged_in_at').gte('logged_in_at', from.toISOString());
+      const counts = {}; const labels = [];
+      for (let i = days-1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate()-i); const k = d.toISOString().slice(0,10); counts[k]=0; labels.push(k); }
+      (data||[]).forEach(r => { const k = r.logged_in_at.slice(0,10); if(counts[k]!==undefined) counts[k]++; });
+      const values = labels.map(l=>counts[l]);
+      const ctx = document.getElementById('loginChart');
+      if (loginChart) loginChart.destroy();
+      loginChart = new Chart(ctx, {
+        type:'line',
+        data:{ labels:labels.map(l=>{ const d=new Date(l); return d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}); }), datasets:[{label:'Logins',data:values,borderColor:'#D4A847',backgroundColor:'rgba(212,168,71,.1)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#D4A847'}]},
+        options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1}}, x:{grid:{display:false}} } }
+      });
+    }
+
+    async function loadDlChart() {
+      const { data } = await _supabase.from('download_logs').select('document_id, documents(title)');
+      const counts = {};
+      (data||[]).forEach(r => { const t = r.documents?.title||'Unknown'; counts[t]=(counts[t]||0)+1; });
+      const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const ctx = document.getElementById('dlChart');
+      if (dlChart) dlChart.destroy();
+      dlChart = new Chart(ctx, {
+        type:'bar',
+        data:{ labels:sorted.map(s=>s[0].length>30?s[0].slice(0,30)+'…':s[0]), datasets:[{label:'Downloads',data:sorted.map(s=>s[1]),backgroundColor:'rgba(59,91,219,.7)',borderRadius:6}]},
+        options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,ticks:{stepSize:1}}, x:{grid:{display:false},ticks:{maxRotation:30}} } }
+      });
+    }
+
+    // ─── Documents ───────────────────────────────────────────
+    async function loadDocuments() {
+      const [docsRes, dlRes] = await Promise.all([
+        _supabase.from('documents').select('*').order('created_at',{ascending:false}),
+        _supabase.from('download_logs').select('document_id')
+      ]);
+      allDocs = docsRes.data || [];
+      downloadCounts = {};
+      (dlRes.data||[]).forEach(r => { downloadCounts[r.document_id]=(downloadCounts[r.document_id]||0)+1; });
+      renderDocTable(allDocs);
+    }
+
+    function renderDocTable(docs) {
+      const tbody = document.getElementById('docTableBody');
+      if (!docs.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="emoji">📂</div><p>No documents yet.</p></div></td></tr>'; return; }
+      tbody.innerHTML = docs.map(doc => {
+        const active = doc.is_active;
+        const size = doc.file_size ? formatSize(doc.file_size) : '—';
+        const date = new Date(doc.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+        const dlCount = downloadCounts[doc.id] || 0;
+        return `<tr>
+          <td style="font-weight:600">${escHtml(doc.title)}</td>
+          <td>${escHtml(doc.category||'—')}</td>
+          <td>${date}</td>
+          <td>${size}</td>
+          <td><span class="badge ${active?'badge-active':'badge-blocked'}">${active?'Active':'Hidden'}</span></td>
+          <td>${dlCount}</td>
+          <td>
+            <button class="action-btn" onclick="toggleDocStatus('${doc.id}',${active})">${active?'Hide':'Show'}</button>
+            <button class="action-btn danger" onclick="confirmDeleteDoc('${doc.id}','${escHtml(doc.file_path)}','${escHtml(doc.title)}')">Delete</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterDocTable() {
+      const q = document.getElementById('docSearch').value.toLowerCase();
+      renderDocTable(allDocs.filter(d => d.title.toLowerCase().includes(q) || (d.category||'').toLowerCase().includes(q)));
+    }
+
+    async function toggleDocStatus(id, currentActive) {
+      await _supabase.from('documents').update({ is_active: !currentActive }).eq('id', id);
+      showToast(currentActive ? 'Document hidden.' : 'Document visible.', 'success');
+      await loadDocuments();
+    }
+
+    function confirmDeleteDoc(id, filePath, title) {
+      showModal('Delete Document', `Permanently delete "<strong>${title}</strong>"? This cannot be undone.`, async () => {
+        await _supabase.storage.from('cics-documents').remove([filePath]);
+        await _supabase.from('documents').delete().eq('id', id);
+        showToast('Document deleted.', 'success');
+        await loadDocuments();
+        closeModal();
+      }, 'modal-confirm');
+    }
+
+    // ─── Upload ──────────────────────────────────────────────
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileSelect(file);
+    }
+
+    function handleFileSelect(file) {
+      if (!file || file.type !== 'application/pdf') { showToast('Please select a PDF file.', 'error'); return; }
+      if (file.size > 20 * 1024 * 1024) { showToast('File exceeds 20 MB limit.', 'error'); return; }
+      selectedFile = file;
+      const el = document.getElementById('selectedFile');
+      el.textContent = `📄 ${file.name} (${formatSize(file.size)})`;
+      el.style.display = 'block';
+    }
+
+    async function uploadDocument() {
+      const title = document.getElementById('upTitle').value.trim();
+      const category = document.getElementById('upCategory').value;
+      const desc = document.getElementById('upDesc').value.trim();
+      if (!title) { showToast('Please enter a title.', 'error'); return; }
+      if (!category) { showToast('Please select a category.', 'error'); return; }
+      if (!selectedFile) { showToast('Please select a PDF file.', 'error'); return; }
+      const btn = document.getElementById('uploadBtn');
+      btn.disabled = true; btn.textContent = 'Uploading…';
+      const bar = document.getElementById('progressBar');
+      const fill = document.getElementById('progressFill');
+      bar.style.display = 'block'; fill.style.width = '20%';
+      try {
+        const fileName = `${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+        fill.style.width = '50%';
+        const { data: storageData, error: storageErr } = await _supabase.storage
+          .from('cics-documents').upload(fileName, selectedFile, { contentType:'application/pdf' });
+        if (storageErr) throw storageErr;
+        fill.style.width = '80%';
+        const { error: dbErr } = await _supabase.from('documents').insert({
+          title, category, description: desc || null, file_path: storageData.path,
+          file_size: selectedFile.size, uploaded_by: currentAdminId
+        });
+        if (dbErr) throw dbErr;
+        fill.style.width = '100%';
+        setTimeout(() => { bar.style.display='none'; fill.style.width='0%'; }, 600);
+        showToast('Document uploaded successfully!', 'success');
+        document.getElementById('upTitle').value = '';
+        document.getElementById('upCategory').value = '';
+        document.getElementById('upDesc').value = '';
+        document.getElementById('selectedFile').style.display = 'none';
+        selectedFile = null;
+        await loadDocuments();
+      } catch(err) {
+        showToast('Upload failed: ' + err.message, 'error');
+        bar.style.display = 'none';
+      }
+      btn.disabled = false; btn.textContent = 'Upload Document';
+    }
+
+    // ─── Students ────────────────────────────────────────────
+    async function loadStudents() {
+      const { data } = await _supabase.from('profiles').select('*').eq('role','student').order('created_at',{ascending:false});
+      allStudents = data || [];
+      renderStudentTable(allStudents);
+    }
+
+    function renderStudentTable(students) {
+      const tbody = document.getElementById('stuTableBody');
+      if (!students.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="emoji">🎓</div><p>No students yet.</p></div></td></tr>'; return; }
+      tbody.innerHTML = students.map(s => {
+        const lastLogin = s.last_login ? new Date(s.last_login).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Never';
+        return `<tr>
+          <td style="font-weight:600">${escHtml(s.full_name||'—')}</td>
+          <td style="color:var(--muted);font-size:.83rem">${escHtml(s.email)}</td>
+          <td>${s.program||'—'}</td>
+          <td style="font-size:.8rem;color:var(--muted)">${lastLogin}</td>
+          <td><span class="badge ${s.is_blocked?'badge-blocked':'badge-student'}">${s.is_blocked?'Blocked':'Active'}</span></td>
+          <td>
+            <button class="action-btn ${s.is_blocked?'success':'warn'}" onclick="toggleBlock('${s.id}',${s.is_blocked},'${escHtml(s.full_name||s.email)}')">${s.is_blocked?'Unblock':'Block'}</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function filterStudentTable() {
+      const q = document.getElementById('stuSearch').value.toLowerCase();
+      renderStudentTable(allStudents.filter(s => (s.full_name||'').toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || (s.program||'').toLowerCase().includes(q)));
+    }
+
+    function toggleBlock(id, isBlocked, name) {
+      const action = isBlocked ? 'unblock' : 'block';
+      showModal(
+        `${isBlocked?'Unblock':'Block'} Student`,
+        `Are you sure you want to ${action} <strong>${name}</strong>?${!isBlocked?' They will no longer be able to access documents.':''}`,
+        async () => {
+          await _supabase.from('profiles').update({ is_blocked: !isBlocked }).eq('id', id);
+          showToast(`Student ${action}ed.`, 'success');
+          await loadStudents();
+          closeModal();
+        },
+        isBlocked ? 'modal-confirm unblock' : 'modal-confirm'
+      );
+    }
+
+    // ─── Reports ─────────────────────────────────────────────
+    function toggleCustomDates() {
+      const v = document.getElementById('rptPeriod').value === 'custom';
+      document.getElementById('customStart').style.display = v ? 'flex' : 'none';
+      document.getElementById('customEnd').style.display = v ? 'flex' : 'none';
+    }
+
+    function toggleLoginCustomDates() {
+      const v = document.getElementById('loginRptPeriod').value === 'custom';
+      document.getElementById('loginCustomStart').style.display = v ? 'flex' : 'none';
+      document.getElementById('loginCustomEnd').style.display = v ? 'flex' : 'none';
+    }
+
+    async function exportReport() {
+      const period = document.getElementById('rptPeriod').value;
+      let from, to = new Date();
+      if (period === 'daily') { from = new Date(); from.setHours(0,0,0,0); }
+      else if (period === 'weekly') { from = new Date(); from.setDate(from.getDate()-7); }
+      else if (period === 'monthly') { from = new Date(); from.setDate(from.getDate()-30); }
+      else { from = new Date(document.getElementById('rptFrom').value); to = new Date(document.getElementById('rptTo').value); }
+      const { data } = await _supabase.from('download_logs')
+        .select('downloaded_at, profiles(full_name,email,program), documents(title,category)')
+        .gte('downloaded_at', from.toISOString()).lte('downloaded_at', to.toISOString())
+        .order('downloaded_at',{ascending:false});
+      if (!data?.length) { showToast('No downloads in this period.', 'error'); return; }
+      const rows = [['Student Name','Email','Program','Document','Category','Downloaded At']];
+      data.forEach(r => rows.push([r.profiles?.full_name||'',r.profiles?.email||'',r.profiles?.program||'',r.documents?.title||'',r.documents?.category||'',new Date(r.downloaded_at).toLocaleString('en-PH')]));
+      downloadCSV(rows, `cics_downloads_${period}_${new Date().toISOString().slice(0,10)}.csv`);
+      showToast('Report exported!', 'success');
+    }
+
+    async function exportLoginReport() {
+      const period = document.getElementById('loginRptPeriod').value;
+      let from, to = new Date();
+      if (period === 'daily') { from = new Date(); from.setHours(0,0,0,0); }
+      else if (period === 'weekly') { from = new Date(); from.setDate(from.getDate()-7); }
+      else if (period === 'monthly') { from = new Date(); from.setDate(from.getDate()-30); }
+      else { from = new Date(document.getElementById('loginRptFrom').value); to = new Date(document.getElementById('loginRptTo').value); }
+      const { data } = await _supabase.from('login_logs')
+        .select('logged_in_at, profiles(full_name,email,program)')
+        .gte('logged_in_at', from.toISOString()).lte('logged_in_at', to.toISOString())
+        .order('logged_in_at',{ascending:false});
+      if (!data?.length) { showToast('No logins in this period.', 'error'); return; }
+      const rows = [['Student Name','Email','Program','Login Time']];
+      data.forEach(r => rows.push([r.profiles?.full_name||'',r.profiles?.email||'',r.profiles?.program||'',new Date(r.logged_in_at).toLocaleString('en-PH')]));
+      downloadCSV(rows, `cics_logins_${period}_${new Date().toISOString().slice(0,10)}.csv`);
+      showToast('Login report exported!', 'success');
+    }
+
+    function downloadCSV(rows, filename) {
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type:'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ─── Modal ───────────────────────────────────────────────
+    function showModal(title, body, onConfirm, confirmClass = 'modal-confirm') {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = body;
+      const btn = document.getElementById('modalConfirm');
+      btn.className = 'modal-btn ' + confirmClass;
+      btn.textContent = 'Confirm';
+      btn.onclick = onConfirm;
+      document.getElementById('modalBackdrop').classList.add('show');
+    }
+    function closeModal() { document.getElementById('modalBackdrop').classList.remove('show'); }
+
+    // ─── Helpers ─────────────────────────────────────────────
+    async function handleLogout() { await signOut(); window.location.href = '../index.html'; }
+
+    function showToast(msg, type='') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast show' + (type ? ' '+type : '');
+      setTimeout(() => t.className = 'toast', 3200);
+    }
+
+    function formatSize(b) {
+      if (b<1024) return b+' B'; if (b<1048576) return (b/1024).toFixed(1)+' KB';
+      return (b/1048576).toFixed(1)+' MB';
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  </script>
+</body>
+</html>
