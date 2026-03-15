@@ -14,7 +14,8 @@
     body { font-family:'DM Sans',sans-serif; background:#F0F2F7; min-height:100vh; }
 
     /* Sidebar */
-.sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; overflow-y:hidden; }    .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
+    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; overflow-y:auto; }
+    .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
     .sidebar-brand .title { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:#fff; letter-spacing:.05em; }
     .sidebar-brand .title span { color:var(--gold); }
     .sidebar-brand .subtitle { font-size:.72rem; color:var(--muted); margin-top:.2rem; letter-spacing:.05em; text-transform:uppercase; }
@@ -108,7 +109,7 @@
     .modal-backdrop { position:fixed; inset:0; background:rgba(10,22,40,.5); backdrop-filter:blur(4px); z-index:200; display:none; align-items:center; justify-content:center; }
     .modal-backdrop.show { display:flex; }
     .modal { background:var(--cream); border-radius:20px; padding:2.25rem; width:90%; max-width:440px; position:relative; }
-    .modal h3 { font-family:'Syne',sans-serif; font-size:1.50rem; font-weight:700; color:var(--navy); margin-bottom:.5rem; }
+    .modal h3 { font-family:'Syne',sans-serif; font-size:1.25rem; font-weight:800; color:var(--navy); margin-bottom:.5rem; }
     .modal p { font-size:.875rem; color:#6B7A99; line-height:1.6; margin-bottom:1.5rem; }
     .modal-actions { display:flex; gap:.75rem; }
     .modal-btn { flex:1; padding:.85rem; border:none; border-radius:10px; font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .15s; }
@@ -559,14 +560,19 @@
         }
       }
 
-      const { data } = await _supabase.from('login_logs').select('logged_in_at')
-        .gte('logged_in_at', from.toISOString()).lte('logged_in_at', to.toISOString());
+      const fromStr = from.toISOString().slice(0,10);
+      const toStr = to.toISOString().slice(0,10);
+      const { data } = await _supabase.from('login_logs').select('logged_in_at, login_date')
+        .gte('login_date', fromStr).lte('login_date', toStr);
 
       if (period === 'monthly') {
-        (data||[]).forEach(r => { const k = r.logged_in_at.slice(0,7); if(counts[k]!==undefined) counts[k]++; });
+        (data||[]).forEach(r => {
+          const k = (r.login_date || r.logged_in_at.slice(0,10)).slice(0,7);
+          if(counts[k]!==undefined) counts[k]++;
+        });
       } else if (period === 'weekly') {
         (data||[]).forEach(r => {
-          const rDate = new Date(r.logged_in_at);
+          const rDate = new Date(r.login_date || r.logged_in_at.slice(0,10));
           let closest = labels[0];
           for (const l of labels) {
             if (new Date(l) <= rDate) closest = l;
@@ -574,7 +580,10 @@
           if (counts[closest] !== undefined) counts[closest]++;
         });
       } else {
-        (data||[]).forEach(r => { const k = r.logged_in_at.slice(0,10); if(counts[k]!==undefined) counts[k]++; });
+        (data||[]).forEach(r => {
+          const k = r.login_date || r.logged_in_at.slice(0,10);
+          if(counts[k]!==undefined) counts[k]++;
+        });
       }
 
       const values = labels.map(l => counts[l] || 0);
@@ -806,18 +815,54 @@
 
     async function exportLoginReport() {
       const period = document.getElementById('loginRptPeriod').value;
-      let from, to = new Date();
-      if (period === 'daily') { from = new Date(); from.setHours(0,0,0,0); }
-      else if (period === 'weekly') { from = new Date(); from.setDate(from.getDate()-7); }
-      else if (period === 'monthly') { from = new Date(); from.setDate(from.getDate()-30); }
-      else { from = new Date(document.getElementById('loginRptFrom').value); to = new Date(document.getElementById('loginRptTo').value); }
-      const { data } = await _supabase.from('login_logs')
-        .select('logged_in_at, profiles(full_name,email,program)')
-        .gte('logged_in_at', from.toISOString()).lte('logged_in_at', to.toISOString())
-        .order('logged_in_at',{ascending:false});
-      if (!data?.length) { showToast('No logins in this period.', 'error'); return; }
-      const rows = [['Student Name','Email','Program','Login Time']];
-      data.forEach(r => rows.push([r.profiles?.full_name||'',r.profiles?.email||'',r.profiles?.program||'',new Date(r.logged_in_at).toLocaleString('en-PH')]));
+      const todayStr = new Date().toISOString().slice(0, 10);
+      let fromDate, toDate = todayStr;
+
+      if (period === 'daily') {
+        fromDate = todayStr;
+      } else if (period === 'weekly') {
+        const d = new Date(); d.setDate(d.getDate()-7);
+        fromDate = d.toISOString().slice(0,10);
+      } else if (period === 'monthly') {
+        const d = new Date(); d.setDate(d.getDate()-30);
+        fromDate = d.toISOString().slice(0,10);
+      } else {
+        fromDate = document.getElementById('loginRptFrom').value;
+        toDate = document.getElementById('loginRptTo').value;
+      }
+
+      // First get login logs
+      const { data: loginData, error: loginErr } = await _supabase.from('login_logs')
+        .select('user_id, logged_in_at, login_date')
+        .gte('login_date', fromDate)
+        .lte('login_date', toDate)
+        .order('login_date', {ascending:false});
+
+      console.log('Login data:', loginData, 'Error:', loginErr);
+
+      if (!loginData?.length) { showToast('No logins in this period.', 'error'); return; }
+
+      // Get profiles separately
+      const userIds = [...new Set(loginData.map(r => r.user_id))];
+      const { data: profileData } = await _supabase.from('profiles')
+        .select('id, full_name, email, program')
+        .in('id', userIds);
+
+      const profileMap = {};
+      (profileData||[]).forEach(p => { profileMap[p.id] = p; });
+
+      const data = loginData;
+      const rows = [['Student Name','Email','Program','Login Date','Login Time']];
+      data.forEach(r => {
+        const p = profileMap[r.user_id] || {};
+        rows.push([
+          p.full_name||'',
+          p.email||'',
+          p.program||'',
+          r.login_date||'',
+          r.logged_in_at ? new Date(r.logged_in_at).toLocaleString('en-PH') : ''
+        ]);
+      });
       downloadCSV(rows, `cics_logins_${period}_${new Date().toISOString().slice(0,10)}.csv`);
       showToast('Login report exported!', 'success');
     }
