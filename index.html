@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
@@ -17,49 +18,22 @@
       --muted:  #8B9AB5;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'DM Sans', sans-serif;
       background: var(--navy);
       min-height: 100vh;
       display: flex;
-      overflow: hidden;
+      flex-direction: column;
+      overflow-x: hidden;
     }
 
-    /* ── Floating logo top-left ── */
-    .floating-logo {
-      position: fixed;
-      top: 10rem;
-      left: 2rem;
-      z-index: 20;
+    /* ── Wrapper ── */
+    .page-wrap {
+      flex: 1;
       display: flex;
-      align-items: center;
-      gap: .75rem;
-    }
-    .floating-logo img {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-    }
-    .logo-divider {
-      width: 1px;
-      height: 28px;
-      background: rgba(212,168,71,.3);
-    }
-    .logo-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 1.75rem;
-      letter-spacing: .18em;
-      color: var(--gold);
-      text-transform: uppercase;
-      line-height: 1.2;
-    }
-    .logo-subtitle {
-      font-size: .68rem;
-      color: rgba(255,255,255,.35);
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      margin-top: .1rem;
+      flex-direction: row;
+      min-height: 100vh;
     }
 
     /* ── Left panel ── */
@@ -78,103 +52,104 @@
         linear-gradient(rgba(212,168,71,.07) 1px, transparent 1px),
         linear-gradient(90deg, rgba(212,168,71,.07) 1px, transparent 1px);
       background-size: 40px 40px;
+      pointer-events: none;
     }
     .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: .25;
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: .25; pointer-events: none;
     }
     .orb-1 { width: 400px; height: 400px; background: var(--gold); top: -100px; left: -100px; }
     .orb-2 { width: 300px; height: 300px; background: #3B5BDB; bottom: -80px; right: -80px; }
 
-    h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      font-weight: 800;
-      line-height: 1.05;
-      color: #fff;
+    /* ── Logo block (centered in left panel) ── */
+    .logo-block {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
       position: relative;
+      z-index: 2;
+      margin-bottom: 3rem;
     }
-    h1 em { font-style: normal; color: var(--gold); }
+    .logo-block img {
+      width: 80px; height: 80px;
+      object-fit: contain; flex-shrink: 0;
+    }
+    .logo-divider {
+      width: 1px; height: 36px;
+      background: rgba(212,168,71,.3);
+    }
+    .logo-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 1.75rem;
+      letter-spacing: .18em; color: var(--gold);
+      text-transform: uppercase; line-height: 1.2;
+    }
+    .logo-subtitle {
+      font-size: .68rem;
+      color: rgba(255,255,255,.35);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-top: .15rem;
+    }
 
     .tagline {
-      margin-top: 2.5rem;
       color: var(--muted);
       font-size: .90rem;
       line-height: 1.7;
       max-width: 380px;
       position: relative;
+      z-index: 2;
     }
     .pills {
       display: flex; gap: .6rem; flex-wrap: wrap;
-      margin-top: 2.5rem; position: relative;
+      margin-top: 2.5rem; position: relative; z-index: 2;
     }
     .pill {
       background: rgba(212,168,71,.12);
       border: 1px solid rgba(212,168,71,.25);
-      color: var(--gold2);
-      font-size: .75rem;
-      font-weight: 500;
-      padding: .35rem .85rem;
-      border-radius: 100px;
-      letter-spacing: .05em;
+      color: var(--gold2); font-size: .75rem;
+      font-weight: 500; padding: .35rem .85rem;
+      border-radius: 100px; letter-spacing: .05em;
     }
 
     /* ── Right panel ── */
     .right-panel {
-      width: 460px;
+      width: 460px; flex-shrink: 0;
       background: var(--cream);
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       justify-content: center;
       padding: 3rem 3.5rem;
       position: relative;
     }
     .right-panel::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
       background: linear-gradient(90deg, var(--gold), var(--gold2));
     }
 
     .login-title {
       font-family: 'Syne', sans-serif;
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: var(--navy);
-      margin-bottom: .5rem;
+      font-size: 1.75rem; font-weight: 700;
+      color: var(--navy); margin-bottom: .5rem;
     }
     .login-sub {
-      font-size: .9rem;
-      color: #6B7A99;
-      margin-bottom: 2.5rem;
-      line-height: 1.6;
+      font-size: .9rem; color: #6B7A99;
+      margin-bottom: 2.5rem; line-height: 1.6;
     }
     .login-sub strong { color: var(--navy); }
 
     .google-btn {
       display: flex; align-items: center; justify-content: center; gap: .85rem;
-      width: 100%;
-      background: var(--navy);
-      color: #fff;
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      font-size: .95rem;
-      padding: 1rem 1.5rem;
-      border: none; border-radius: 12px;
-      cursor: pointer;
-      transition: all .2s;
-      position: relative;
-      overflow: hidden;
+      width: 100%; background: var(--navy); color: #fff;
+      font-family: 'Syne', sans-serif; font-weight: 600;
+      font-size: .95rem; padding: 1rem 1.5rem;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: all .2s; position: relative; overflow: hidden;
     }
     .google-btn::after {
-      content: '';
-      position: absolute; inset: 0;
+      content: ''; position: absolute; inset: 0;
       background: linear-gradient(135deg, rgba(212,168,71,.15), transparent);
-      opacity: 0;
-      transition: opacity .2s;
+      opacity: 0; transition: opacity .2s;
     }
     .google-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(10,22,40,.3); }
     .google-btn:hover::after { opacity: 1; }
@@ -183,41 +158,19 @@
 
     .divider {
       display: flex; align-items: center; gap: 1rem;
-      margin: 2rem 0;
-      color: #B5BFCF;
-      font-size: .8rem;
-      letter-spacing: .08em;
-      text-transform: uppercase;
+      margin: 2rem 0; color: #B5BFCF;
+      font-size: .8rem; letter-spacing: .08em; text-transform: uppercase;
     }
     .divider::before, .divider::after {
       content: ''; flex: 1; height: 1px; background: #DDE3EE;
     }
 
     .notice {
-      background: #EEF3FF;
-      border: 1px solid #D0D9F5;
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      font-size: .83rem;
-      color: #4A5680;
-      line-height: 1.6;
+      background: #EEF3FF; border: 1px solid #D0D9F5;
+      border-radius: 10px; padding: 1rem 1.25rem;
+      font-size: .83rem; color: #4A5680; line-height: 1.6;
     }
     .notice .icon { display: inline-block; margin-right: .4rem; }
-
-    .admin-link {
-      margin-top: 2rem;
-      text-align: center;
-      font-size: .8rem;
-      color: #9AA5BE;
-    }
-    .admin-link a {
-      color: var(--navy);
-      font-weight: 600;
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-      transition: border-color .2s;
-    }
-    .admin-link a:hover { border-color: var(--navy); }
 
     .toast {
       position: fixed; bottom: 2rem; right: 2rem;
@@ -226,83 +179,102 @@
       font-size: .88rem; font-weight: 500;
       box-shadow: 0 8px 24px rgba(0,0,0,.2);
       transform: translateY(4rem); opacity: 0;
-      transition: all .3s;
-      z-index: 999;
+      transition: all .3s; z-index: 999;
+      max-width: calc(100vw - 2rem);
     }
     .toast.show { transform: translateY(0); opacity: 1; }
 
     .spinner {
       width: 18px; height: 18px;
       border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      display: none;
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .7s linear infinite; display: none;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    @media (max-width: 768px) {
-      body { flex-direction: column; overflow: auto; }
-      .left-panel { padding: 5rem 2rem 2rem; }
-      .right-panel { width: 100%; padding: 2.5rem 2rem; }
-      .floating-logo { left: 1.25rem; }
+    /* ── TABLET ≤ 900px ── */
+    @media (max-width: 900px) {
+      .page-wrap { flex-direction: column; min-height: 100vh; }
+      .left-panel { padding: 3rem 2.5rem 2.5rem; flex: none; justify-content: flex-start; }
+      .logo-block { margin-bottom: 2rem; }
+      .right-panel { width: 100%; padding: 2.5rem 2.5rem 3rem; }
+    }
+
+    /* ── MOBILE ≤ 500px ── */
+    @media (max-width: 500px) {
+      .left-panel { padding: 2rem 1.5rem 2rem; }
+      .logo-block { gap: .6rem; margin-bottom: 1.75rem; }
+      .logo-block img { width: 52px; height: 52px; }
+      .logo-title { font-size: 1.2rem; letter-spacing: .12em; }
+      .logo-subtitle { font-size: .62rem; }
+      .logo-divider { height: 28px; }
+      .tagline { font-size: .85rem; }
+      .pills { margin-top: 1.5rem; gap: .4rem; }
+      .pill { font-size: .7rem; padding: .28rem .65rem; }
+      .right-panel { padding: 2rem 1.5rem 2.5rem; }
+      .login-title { font-size: 1.4rem; }
+      .login-sub { font-size: .86rem; margin-bottom: 1.75rem; }
+      .google-btn { font-size: .88rem; padding: .9rem 1rem; }
+      .notice { font-size: .79rem; padding: .85rem 1rem; }
+      .divider { margin: 1.5rem 0; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ── Floating logo top-left ── -->
-  <div class="floating-logo">
-    <img src="images/neu.png" alt="NEU Logo" />
-    <div class="logo-divider"></div>
-    <div>
-      <div class="logo-title">CICS · NEU</div>
-      <div class="logo-subtitle">New Era University — Document Hub</div>
-    </div>
-  </div>
+  <div class="page-wrap">
 
-  <!-- Left: branding -->
-  <div class="left-panel">
-    <div class="grid-bg"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+    <!-- ── Left panel ── -->
+    <div class="left-panel">
+      <div class="grid-bg"></div>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
 
-  
-    <p class="tagline">Your centralized repository for official CICS forms, policies, curriculum guides, and academic documents.</p>
+      <!-- Logo + title centered in left panel -->
+      <div class="logo-block">
+        <img src="images/neu.png" alt="NEU Logo" />
+        <div class="logo-divider"></div>
+        <div>
+          <div class="logo-title">CICS · NEU</div>
+          <div class="logo-subtitle">New Era University — Document Hub</div>
+        </div>
+      </div>
 
-    <div class="pills">
-      <span class="pill">Curriculum Guides</span>
-      <span class="pill">Academic Forms</span>
-      <span class="pill">Policies</span>
-      <span class="pill">Announcements</span>
-      <span class="pill">Templates</span>
-    </div>
-  </div>
+      <p class="tagline">Your centralized repository for official CICS forms, policies, curriculum guides, and academic documents.</p>
 
-  <!-- Right: login card -->
-  <div class="right-panel">
-    <h2 class="login-title">Welcome back</h2>
-    <p class="login-sub">Sign in with your <strong>NEU Google account</strong> to access CICS documents and resources.</p>
-
-    <button class="google-btn" id="googleBtn" onclick="handleGoogleLogin()">
-      <svg width="20" height="20" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-        <path fill="none" d="M0 0h48v48H0z"/>
-      </svg>
-      <span id="btnText">Continue with Google</span>
-      <div class="spinner" id="spinner"></div>
-    </button>
-
-    <div class="divider">Important</div>
-
-    <div class="notice">
-      <span class="icon">🔒</span>
-      Only <strong>@neu.edu.ph</strong> Google accounts are permitted to access this system. Personal Gmail accounts will be rejected.
+      <div class="pills">
+        <span class="pill">Curriculum Guides</span>
+        <span class="pill">Academic Forms</span>
+        <span class="pill">Policies</span>
+        <span class="pill">Announcements</span>
+        <span class="pill">Templates</span>
+      </div>
     </div>
 
+    <!-- ── Right panel ── -->
+    <div class="right-panel">
+      <h2 class="login-title">Welcome back</h2>
+      <p class="login-sub">Sign in with your <strong>NEU Google account</strong> to access CICS documents and resources.</p>
+
+      <button class="google-btn" id="googleBtn" onclick="handleGoogleLogin()">
+        <svg width="20" height="20" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          <path fill="none" d="M0 0h48v48H0z"/>
+        </svg>
+        <span id="btnText">Continue with Google</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+
+      <div class="divider">Important</div>
+
+      <div class="notice">
+        <span class="icon">🔒</span>
+        Only <strong>@neu.edu.ph</strong> Google accounts are permitted to access this system. Personal Gmail accounts will be rejected.
+      </div>
+    </div>
 
   </div>
 
