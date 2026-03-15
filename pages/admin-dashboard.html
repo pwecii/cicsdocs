@@ -14,7 +14,7 @@
     body { font-family:'DM Sans',sans-serif; background:#F0F2F7; min-height:100vh; }
 
     /* Sidebar */
-    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; }
+    .sidebar { width:240px; background:var(--navy); min-height:100vh; position:fixed; left:0; top:0; bottom:0; display:flex; flex-direction:column; z-index:50; transition:transform .25s ease; }
     .sidebar-brand { padding:1.5rem 1.75rem; border-bottom:1px solid rgba(255,255,255,.07); }
     .sidebar-brand .title { font-family:'Syne',sans-serif; font-weight:800; font-size:1rem; color:#fff; letter-spacing:.05em; }
     .sidebar-brand .title span { color:var(--gold); }
@@ -135,58 +135,88 @@
     .empty-state { text-align:center; padding:4rem 1rem; color:var(--muted); }
     .empty-state .emoji { font-size:2.5rem; margin-bottom:.75rem; }
 
-    /* ── Hamburger button ── */
-    .hamburger { display:none; background:none; border:none; cursor:pointer; padding:.5rem; color:var(--navy); flex-shrink:0; }
-    .hamburger svg { display:block; }
+    /* ── Hamburger ── */
+    .hamburger { display:none; background:none; border:none; cursor:pointer; padding:.4rem; color:var(--navy); align-items:center; justify-content:center; flex-shrink:0; }
 
-    /* ── Mobile overlay ── */
-    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:49; }
+    /* ── Overlay ── */
+    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:49; }
     .sidebar-overlay.show { display:block; }
 
-    /* ── Tablet 900px ── */
+    /* ── Tablet ≤900px ── */
     @media(max-width:900px) {
       .sidebar { width:60px; }
-      .sidebar-brand .title, .sidebar-brand .subtitle, .nav-item span, .admin-info .admin-name, .admin-info .admin-role, .logout-link { display:none; }
+      .sidebar-brand .title, .sidebar-brand .subtitle, .nav-item span,
+      .admin-info .admin-name, .admin-info .admin-role, .logout-link { display:none; }
       .nav-item { justify-content:center; padding:.7rem; }
       .content { margin-left:60px; }
       .sidebar-footer .admin-info { justify-content:center; }
-      .stats-grid { grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
       .topbar { padding:0 1.25rem; }
       .page { padding:1.5rem 1rem; }
+      .stats-grid { grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
     }
 
-    /* ── Mobile 600px ── */
+    /* ── Mobile ≤600px ── */
     @media(max-width:600px) {
-      .hamburger { display:flex; align-items:center; justify-content:center; }
+      .hamburger { display:flex; }
+
       .sidebar {
-        width:240px;
+        width:260px;
         transform:translateX(-100%);
-        transition:transform .25s ease;
-        z-index:50;
       }
-      .sidebar.open { transform:translateX(0); }
-      .sidebar-brand .title, .sidebar-brand .subtitle, .nav-item span,
-      .admin-info .admin-name, .admin-info .admin-role, .logout-link { display:block; }
-      .nav-item { justify-content:flex-start; padding:.7rem 1.1rem; }
-      .sidebar-footer .admin-info { justify-content:flex-start; }
+      .sidebar.open {
+        transform:translateX(0);
+      }
+
+      /* show text only when open */
+      .sidebar-brand .title,
+      .sidebar-brand .subtitle,
+      .nav-item span,
+      .admin-info .admin-name,
+      .admin-info .admin-role,
+      .logout-link { display:none; }
+
+      .sidebar.open .sidebar-brand .title,
+      .sidebar.open .sidebar-brand .subtitle,
+      .sidebar.open .nav-item span,
+      .sidebar.open .admin-info .admin-name,
+      .sidebar.open .admin-info .admin-role,
+      .sidebar.open .logout-link { display:block; }
+
+      .nav-item { justify-content:center; padding:.7rem; }
+      .sidebar.open .nav-item { justify-content:flex-start; padding:.7rem 1.1rem; }
+      .sidebar-footer .admin-info { justify-content:center; }
+      .sidebar.open .sidebar-footer .admin-info { justify-content:flex-start; }
+
       .content { margin-left:0; }
-      .topbar { padding:0 1rem; gap:.75rem; }
-      .topbar h1 { font-size:1rem; }
+      .topbar { padding:0 .85rem; gap:.6rem; height:54px; }
+      .topbar h1 { font-size:.95rem; }
       #topbarDate { display:none; }
       .page { padding:1rem .75rem; }
-      .stats-grid { grid-template-columns:1fr 1fr; gap:.75rem; }
-      .stat-card { padding:1.1rem; }
-      .stat-value { font-size:1.4rem; }
-      .chart-card { padding:1.25rem; }
-      .chart-toolbar { flex-direction:column; align-items:flex-start; gap:.75rem; }
+      .stats-grid { grid-template-columns:1fr 1fr; gap:.65rem; margin-bottom:1.25rem; }
+      .stat-card { padding:1rem; }
+      .stat-value { font-size:1.35rem; }
+      .stat-label { font-size:.68rem; }
+      .chart-card { padding:1.1rem; margin-bottom:1.25rem; }
+      .chart-card h3 { font-size:.9rem; margin-bottom:.75rem; }
+      .chart-toolbar { flex-direction:column; align-items:flex-start; gap:.6rem; margin-bottom:1rem; }
+      .period-btn { font-size:.75rem; padding:.35rem .75rem; }
       .form-row { grid-template-columns:1fr; }
-      .table-header { flex-direction:column; align-items:flex-start; gap:.75rem; }
+      .table-card { border-radius:12px; }
+      .table-header { flex-direction:column; align-items:flex-start; gap:.65rem; padding:1rem; }
+      .table-header h3 { font-size:.9rem; }
       .search-sm { width:100%; }
+      thead th { padding:.65rem .75rem; font-size:.68rem; }
+      tbody td { padding:.7rem .75rem; font-size:.8rem; }
+      .report-card { padding:1.25rem; }
       .report-form { flex-direction:column; }
-      .report-btn { width:100%; }
+      .report-btn { width:100%; margin-top:.25rem; }
+      .upload-card { padding:1.25rem; }
       .upload-btn { width:100%; }
-      .toast { right:.75rem; bottom:1rem; max-width:calc(100vw - 1.5rem); font-size:.82rem; }
+      .drop-zone { padding:1.75rem 1rem; }
+      .modal { padding:1.75rem 1.25rem; }
+      .toast { right:.75rem; bottom:1rem; left:.75rem; max-width:none; font-size:.82rem; }
     }
+
   </style>
 </head>
 <body>
