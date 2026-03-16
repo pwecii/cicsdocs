@@ -162,10 +162,37 @@
     };
 
     (async () => {
-      const auth = await requireAuth(false);
-      if (!auth) return;
-      const { session, profile } = auth;
+      // Allow admin to preview as student
+      const isAdminPreview = sessionStorage.getItem('admin_preview_student') === '1';
+
+      const session = await _supabase.auth.getSession().then(r => r.data.session);
+      if (!session) { window.location.href = '../index.html'; return; }
+
+      let profile;
+      try { profile = await getProfile(session.user.id); } catch(e) { window.location.href = '../index.html'; return; }
+
+      // If admin previewing as student, allow through
+      if (profile.role === 'admin' && !isAdminPreview) {
+        window.location.href = 'admin-dashboard.html';
+        return;
+      }
+
+      // If blocked
+      if (profile.is_blocked) {
+        alert('Your account has been blocked.');
+        await signOut();
+        window.location.href = '../index.html';
+        return;
+      }
+
       currentUserId = session.user.id;
+
+      // Show "Back to Admin" banner if previewing
+      if (isAdminPreview) {
+        const banner = document.createElement('div');
+        banner.innerHTML = `<div style="background:#0A1628;color:#D4A847;text-align:center;padding:.6rem;font-size:.83rem;font-weight:600;">👁 Admin Preview Mode — <a href="admin-dashboard.html" onclick="sessionStorage.removeItem('admin_preview_student')" style="color:#F0C96B;text-decoration:underline;">Back to Admin Dashboard</a></div>`;
+        document.body.prepend(banner);
+      }
 
       const name = profile.full_name || session.user.email;
       const first = name.split(' ')[0];
