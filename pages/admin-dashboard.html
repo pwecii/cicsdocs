@@ -109,7 +109,7 @@
     .modal-backdrop { position:fixed; inset:0; background:rgba(10,22,40,.5); backdrop-filter:blur(4px); z-index:200; display:none; align-items:center; justify-content:center; }
     .modal-backdrop.show { display:flex; }
     .modal { background:var(--cream); border-radius:20px; padding:2.25rem; width:90%; max-width:440px; position:relative; }
-    .modal h3 { font-family:'Syne',sans-serif; font-size:1.50rem; font-weight:700; color:var(--navy); margin-bottom:.5rem; }
+    .modal h3 { font-family:'Syne',sans-serif; font-size:1.25rem; font-weight:800; color:var(--navy); margin-bottom:.5rem; }
     .modal p { font-size:.875rem; color:#6B7A99; line-height:1.6; margin-bottom:1.5rem; }
     .modal-actions { display:flex; gap:.75rem; }
     .modal-btn { flex:1; padding:.85rem; border:none; border-radius:10px; font-family:'Syne',sans-serif; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .15s; }
@@ -236,15 +236,10 @@
 
   <!-- Sidebar -->
   <aside class="sidebar">
-<div class="sidebar-brand">
-  <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.3rem">
-    <img src="../images/neu.png" alt="NEU" style="width:46px;height:46px;object-fit:contain;flex-shrink:0;" />
-    <div>
+    <div class="sidebar-brand">
       <div class="title">CICS <span>DocHub</span></div>
       <div class="subtitle">Admin Portal</div>
     </div>
-  </div>
-</div>
 
     <div class="nav-section">Main</div>
     <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span><span>Dashboard</span></button>
@@ -293,7 +288,10 @@
         </svg>
       </button>
       <h1 id="pageTitle">Dashboard</h1>
-      <span id="topbarDate" style="font-size:.82rem;color:var(--muted)"></span>
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <button onclick="viewAsStudent()" style="background:rgba(212,168,71,.15);border:1.5px solid rgba(212,168,71,.4);color:#8A6A10;font-size:.78rem;font-weight:600;padding:.35rem .9rem;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap;" onmouseover="this.style.background='rgba(212,168,71,.25)'" onmouseout="this.style.background='rgba(212,168,71,.15)'">👁 View as Student</button>
+        <span id="topbarDate" style="font-size:.82rem;color:var(--muted)"></span>
+      </div>
     </div>
 
     <!-- ── DASHBOARD ── -->
@@ -894,6 +892,12 @@
 
     // ─── Helpers ─────────────────────────────────────────────
     async function handleLogout() { await signOut(); window.location.href = '../index.html'; }
+
+    function viewAsStudent() {
+      // Set flag so student dashboard allows admin through
+      sessionStorage.setItem('admin_preview_student', '1');
+      window.location.href = 'student-dashboard.html';
+    }
 
     function toggleSidebar() {
       const sidebar = document.querySelector('.sidebar');
